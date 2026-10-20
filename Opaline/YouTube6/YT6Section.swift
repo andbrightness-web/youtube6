@@ -134,39 +134,60 @@ enum YT6Section: Int, CaseIterable {
 }
 
 extension MainTabBarController {
-    var yt6SelectedSection: YT6Section? {
-        YT6Section(rawValue: selectedIndex)
+    /// One navigation stack per guide row, built once and kept so each row
+    /// remembers its place. Only the selected one is ever a tab: a tab bar
+    /// controller moves tabs past the fifth into its system "More" stack,
+    /// whose own bar would show instead of the 2.0.0 one.
+    private var yt6Stacks: [UIViewController] {
+        get {
+            objc_getAssociatedObject(self, &yt6StacksKey) as? [UIViewController] ?? []
+        }
+        set {
+            objc_setAssociatedObject(self, &yt6StacksKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
     }
 
-    /// Replaces the tab list: one navigation stack per guide row, tab bar
-    /// hidden. Shorts are cut entirely (REQUEST680).
+    var yt6SelectedSection: YT6Section? {
+        guard let selected = selectedViewController else {
+            return nil
+        }
+        return yt6Stacks.firstIndex { $0 === selected }.flatMap(YT6Section.init)
+    }
+
+    /// Replaces the tab list with the selected guide row; tab bar hidden.
+    /// Shorts are cut entirely (REQUEST680).
     func yt6BuildTabs() -> [UIViewController] {
         UserDefaults.standard.set(false, forKey: UserDefaultsKeys.Feed.showShorts)
         tabBar.isHidden = true
-        return YT6Section.allCases.map { section in
+        yt6Stacks = YT6Section.allCases.map { section in
             let root = section.makeRoot(dependencies)
             root.yt6Section = section
             YT6Chrome.decorate(root)
             return RotatingNavigationController(rootViewController: root)
         }
+        return Array(yt6Stacks.prefix(1))
     }
 
     func yt6Select(_ section: YT6Section) {
-        guard let navs = viewControllers, navs.indices.contains(section.rawValue) else {
+        let stacks = yt6Stacks
+        guard stacks.indices.contains(section.rawValue) else {
             return
         }
-        if selectedIndex == section.rawValue,
-           let nav = navs[section.rawValue] as? UINavigationController {
-            if nav.viewControllers.count > 1 {
+        let stack = stacks[section.rawValue]
+        guard stack !== selectedViewController else {
+            if let nav = stack as? UINavigationController, nav.viewControllers.count > 1 {
                 nav.popToRootViewController(animated: false)
-            } else if let scrollable = nav.topViewController as? ScrollableToTop {
+            } else if let nav = stack as? UINavigationController,
+                      let scrollable = nav.topViewController as? ScrollableToTop {
                 scrollable.scrollToTop()
             }
+            return
         }
-        selectedIndex = section.rawValue
+        setViewControllers([stack], animated: false)
     }
 }
 
+private var yt6StacksKey: UInt8 = 0
 private var yt6SectionKey: UInt8 = 0
 
 extension UIViewController {
