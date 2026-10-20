@@ -34,6 +34,7 @@ enum HLSPlaybackBuilder {
         completion: @escaping (Result?) -> Void
     ) {
         let startTime = CACurrentMediaTime()
+        YT6RangeProxy.prepare(for: input)
         probeIdentity(input: input) { healthy in
             guard healthy else {
                 completion(nil)
@@ -226,6 +227,14 @@ private extension HLSPlaybackBuilder {
         videoSegments: [SidxSegment],
         audioSegments: [SidxSegment]
     ) {
+        if YT6RangeProxy.registerPlaylists(
+            on: loader,
+            input: input,
+            video: videoSegments,
+            audio: audioSegments
+        ) {
+            return
+        }
         let vidFmt = input.videoFormat
         let audFmt = input.audioFormat
         let videoPl = HLSGenerator.mediaPlaylist(
