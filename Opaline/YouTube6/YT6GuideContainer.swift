@@ -53,6 +53,21 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
 
         pan.delegate = self
         content.addGestureRecognizer(pan)
+        decorateSelectedSection()
+    }
+
+    /// Same list chrome on every guide row (REQUEST691): runs once the
+    /// selected row's screen has loaded its list.
+    private func decorateSelectedSection() {
+        DispatchQueue.main.async { [weak self] in
+            guard let root = (self?.tabs.selectedViewController as? UINavigationController)?
+                .viewControllers.first,
+                root.isViewLoaded
+            else {
+                return
+            }
+            YT6PullRefresh.attach(under: root.view)
+        }
     }
 
     // MARK: Open / close (`maximize` / `minimize`)
@@ -114,6 +129,7 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
         case .section(let section):
             tabs.yt6Select(section)
             close()
+            decorateSelectedSection()
         case .account:
             close()
             topScreen()?.toolbarOpenProfile()

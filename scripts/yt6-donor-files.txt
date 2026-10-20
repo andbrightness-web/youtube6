@@ -53,3 +53,4 @@ PlayerLibResources.bundle/player_scrubber_buffered_track
 PlayerLibResources.bundle/player_scrubber_played_track
 PlayerLibResources.bundle/player_scrubber_thumb
 PlayerLibResources.bundle/overlay_watch_collapse
+UILibResources.bundle/refresh_light

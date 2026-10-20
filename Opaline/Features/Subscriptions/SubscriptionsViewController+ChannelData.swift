@@ -51,7 +51,8 @@ extension SubscriptionsViewController {
         channelBar.setChannels(channels)
         channelBar.setSelectedChannelId(selectedChannel?.id)
         refreshNewContentDots()
-        if tableView.tableHeaderView !== channelBar {
+        // youtube6: no avatar strip — 2.0.0 lists channels in the guide.
+        if !YT6.isEnabled, tableView.tableHeaderView !== channelBar {
             channelBar.frame = CGRect(
                 x: 0,
                 y: 0,

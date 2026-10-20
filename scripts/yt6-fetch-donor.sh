@@ -48,9 +48,16 @@ import json, os, plistlib, sys
 app, out = sys.argv[1], sys.argv[2]
 result = {}
 for entry in sorted(os.listdir(app)):
-    if entry.endswith(".lproj") and os.path.exists(os.path.join(app, entry, "Localizable.strings")):
-        with open(os.path.join(app, entry, "Localizable.strings"), "rb") as f:
-            result[entry[:-6]] = plistlib.load(f)
+    if not entry.endswith(".lproj"):
+        continue
+    table = {}
+    for name in ("UILib.strings", "Localizable.strings"):
+        path = os.path.join(app, entry, name)
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                table.update(plistlib.load(f))
+    if table:
+        result[entry[:-6]] = table
 json.dump(result, open(out, "w"), ensure_ascii=False)
 PY
 echo "donor: $(ls "$OUT" | wc -l | tr -d ' ') files in $OUT"
