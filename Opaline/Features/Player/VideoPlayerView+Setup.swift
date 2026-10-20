@@ -137,6 +137,9 @@ extension VideoPlayerView {
         setupTopBar()
         setupCenterButtons()
         setupBottomBar()
+        if YT6.isEnabled {
+            yt6RestyleControls()
+        }
     }
 
     private func setupDimOverlay() {

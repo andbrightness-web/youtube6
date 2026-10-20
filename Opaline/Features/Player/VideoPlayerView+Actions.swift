@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AVFoundation
 import AVKit
 import UIKit
@@ -272,6 +273,10 @@ extension VideoPlayerView {
 
 extension VideoPlayerView {
     func updatePlayPauseIcon() {
+        if YT6.isEnabled {
+            yt6UpdateIcons()
+            return
+        }
         if isAtEnd {
             playPauseButton.setImage(PlayerIcons.replay(), for: .normal)
             return
@@ -284,6 +289,10 @@ extension VideoPlayerView {
     }
 
     func updateFullscreenIcon() {
+        if YT6.isEnabled {
+            yt6UpdateIcons()
+            return
+        }
         fullscreenButton.setImage(
             PlayerIcons.fullscreen(
                 isFullscreen: isFullscreen

@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import UIKit
 
 final class VideoSeekBar: UIControl {
@@ -128,6 +129,9 @@ final class VideoSeekBar: UIControl {
         configureTrackViews()
         addTrackSubviews()
         activateTrackConstraints()
+        if YT6.isEnabled {
+            yt6Restyle()
+        }
     }
 
     private func configureTrackViews() {
@@ -268,4 +272,39 @@ struct SeekBarSegment {
     let start: Double
     let end: Double
     let color: UIColor
+}
+
+// MARK: - youtube6
+
+extension VideoSeekBar {
+    /// `-[YTPlayerBarView initScrubberWithMode:]` @3b6e7e: 9 pt tracks drawn
+    /// from `player_scrubber_track` (whole), `_buffered_track` (loaded) and
+    /// `_played_track` (played), stretchable; SponsorBlock segments stay
+    /// on top of the loaded track. Thumb: `player_scrubber_thumb` (44 pt).
+    func yt6Restyle() {
+        let tracks = [
+            (trackView, "player_scrubber_track"),
+            (bufferView, "player_scrubber_buffered_track"),
+            (progressView, "player_scrubber_played_track")
+        ]
+        for (view, name) in tracks {
+            view.backgroundColor = .clear
+            view.layer.cornerRadius = 0
+            view.clipsToBounds = false
+            view.constraints
+                .filter { $0.firstAttribute == .height }
+                .forEach { $0.constant = 9 }
+            let image = UIImageView(image: YT6.stretchableImage(name))
+            image.frame = view.bounds
+            image.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(image)
+        }
+        thumbView.backgroundColor = .clear
+        thumbView.layer.cornerRadius = 0
+        thumbView.frame.size = CGSize(width: 44, height: 44)
+        let thumb = UIImageView(image: YT6.image("player_scrubber_thumb"))
+        thumb.frame = thumbView.bounds
+        thumb.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        thumbView.addSubview(thumb)
+    }
 }
