@@ -17,7 +17,9 @@ set -e
 APP_NAME="Opaline"
 PROJECT="Opaline.xcodeproj"
 SCHEME="Opaline"
-PACKAGE_ID="com.verback.ytlite"
+PACKAGE_ID="${PACKAGE_ID:-com.verback.ytlite}"
+# Folder name under /Applications; a fork sets it so it installs beside Opaline.
+INSTALL_NAME="${INSTALL_NAME:-$APP_NAME}"
 HOMEPAGE="https://github.com/verback2308/ytlite"
 ICON_URL="https://raw.githubusercontent.com/verback2308/ytlite/main/source/icon.png"
 
@@ -47,20 +49,20 @@ build_deb() {
   # offering upgrades, and putting that on the releases page under a project
   # called Opaline confuses far more people than the broken convention does.
   # Nothing resolves packages by filename -- APT follows Filename: in the index.
-  local OUTPUT="${APP_NAME}_${VERSION}_${ARCH}.deb"
+  local OUTPUT="${INSTALL_NAME}_${VERSION}_${ARCH}.deb"
   local STAGE
   STAGE=$(mktemp -d)
   local DATA="$STAGE/data" CTRL="$STAGE/control"
 
   mkdir -p "$DATA$PREFIX/Applications" "$CTRL"
-  cp -R "$APP_PATH" "$DATA$PREFIX/Applications/"
+  cp -R "$APP_PATH" "$DATA$PREFIX/Applications/$INSTALL_NAME.app"
 
   local SIZE_KB
   SIZE_KB=$(du -sk "$DATA" | cut -f1)
 
   cat > "$CTRL/control" <<EOF
 Package: $PACKAGE_ID
-Name: $APP_NAME
+Name: $INSTALL_NAME
 Version: $VERSION
 Architecture: $ARCH
 Section: Applications
@@ -78,7 +80,7 @@ EOF
 
   cat > "$CTRL/postinst" <<EOF
 #!/bin/sh
-uicache -p "$PREFIX/Applications/$APP_NAME.app" 2>/dev/null || uicache -a || true
+uicache -p "$PREFIX/Applications/$INSTALL_NAME.app" 2>/dev/null || uicache -a || true
 exit 0
 EOF
 

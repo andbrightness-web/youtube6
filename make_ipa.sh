@@ -16,7 +16,7 @@ set -e
 APP_NAME="Opaline"
 PROJECT="Opaline.xcodeproj"
 SCHEME="Opaline"
-RELEASE_BUNDLE_ID="com.verback.YTLite"
+RELEASE_BUNDLE_ID="${RELEASE_BUNDLE_ID:-com.verback.YTLite}"
 SOURCE_JSON="source/apps.json"
 BUILD_LOG=$(mktemp)
 
@@ -96,13 +96,13 @@ done
 rm -f "$APP_PATH/embedded.mobileprovision"
 
 ENTITLEMENTS=$(mktemp).plist
-cat > "$ENTITLEMENTS" <<'EOF'
+cat > "$ENTITLEMENTS" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>application-identifier</key>
-	<string>4RAT6786W6.com.verback.YTLite</string>
+	<string>4RAT6786W6.${RELEASE_BUNDLE_ID}</string>
 	<key>com.apple.developer.team-identifier</key>
 	<string>4RAT6786W6</string>
 	<key>get-task-allow</key>
@@ -122,7 +122,7 @@ done
 if [ -d "$APPEX_PATH" ]; then
   rm -f "$APPEX_PATH/embedded.mobileprovision"
   APPEX_ENTITLEMENTS=$(mktemp).plist
-  sed 's|com.verback.YTLite<|com.verback.YTLite.OpenIn<|' "$ENTITLEMENTS" \
+  sed "s|${RELEASE_BUNDLE_ID}<|${RELEASE_BUNDLE_ID}.OpenIn<|" "$ENTITLEMENTS" \
     > "$APPEX_ENTITLEMENTS"
   codesign -f -s - --entitlements "$APPEX_ENTITLEMENTS" "$APPEX_PATH" 2>/dev/null \
     && echo "  codesign (extension): ok" \
