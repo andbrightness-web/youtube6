@@ -26,6 +26,10 @@ grep -v '^#' scripts/yt6-donor-files.txt | while read -r path; do
   [ -f "$OUT/yt6_$name@2x.png" ] || { echo "missing $path@2x.png" >&2; exit 1; }
 done
 
+# The 2.0.0 launch image (LaunchImage-568h@2x.png: dark gray, logo) for
+# YT6LaunchScreen.storyboard and the in-app splash.
+cp "$APP/LaunchImage-568h@2x.png" "$OUT/yt6_launch@2x.png"
+
 # The 2.0.0 home screen icon (Icon@2x.png, 114 px) as an app icon set for the
 # iPhone sizes iOS 12 asks for; the build selects it with
 # ASSETCATALOG_COMPILER_APPICON_NAME=YT6AppIcon. Needs macOS sips.

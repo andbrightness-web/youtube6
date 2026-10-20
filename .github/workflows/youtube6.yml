@@ -56,6 +56,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
             INFOPLIST_KEY_CFBundleDisplayName=YouTube
             ASSETCATALOG_COMPILER_APPICON_NAME=YT6AppIcon
+            INFOPLIST_KEY_UILaunchStoryboardName=YT6LaunchScreen
         run: ./make_ipa.sh
 
       - name: Build deb

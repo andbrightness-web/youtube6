@@ -35,6 +35,10 @@ final class SplashViewController: UIViewController {
     // MARK: - UI
 
     private func setupUI() {
+        if YT6.isEnabled {
+            yt6SetupLaunchImage()
+            return
+        }
         // Drawn as-is, never as a template: the mark carries the opal gradient
         // itself, which is the whole point of it — a tint would flatten the brand
         // back into the plain triangle it used to be on the dark theme.
@@ -61,6 +65,11 @@ final class SplashViewController: UIViewController {
     // MARK: - Animation
 
     private func animateAndComplete() {
+        // youtube6: 2.0.0 went straight from its launch image to the app.
+        if YT6.isEnabled {
+            onComplete?()
+            return
+        }
         UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseOut) {
             // Lands on the theme background the next screen is painted with, so
             // the root swap isn't a flash, and the mark sits on white or black
