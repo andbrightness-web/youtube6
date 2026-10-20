@@ -189,6 +189,17 @@ final class YT6ListVideoCell: SubscriptionVideoCell {
         fatalError("init(coder:) is not supported")
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Upstream's prepareForReuse shows its avatar again, and not every
+        // upstream view sits under the row — keep only the row visible.
+        for view in contentView.subviews where view !== row {
+            view.isHidden = true
+        }
+        contentView.bringSubviewToFront(row)
+        contentView.superview?.bringSubviewToFront(contentView)
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
         row.configureSkeleton()
