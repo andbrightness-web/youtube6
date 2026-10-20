@@ -105,6 +105,9 @@ final class MiniPlayerBar: UIView {
         infoBar.backgroundColor = theme.surface
         titleLabel.textColor = theme.primaryText
         closeButton.setImage(closeIcon(color: theme.primaryText), for: .normal)
+        if YT6.isEnabled {
+            yt6Restyle()
+        }
     }
 
     // MARK: - Card setup
@@ -222,4 +225,18 @@ private extension MiniPlayerBar {
 
     @objc
     func barTapped() { onTap?() }
+}
+
+// MARK: - youtube6
+
+extension MiniPlayerBar {
+    /// 2.0.0's collapsed player is the video alone (`YTWatchView_iPhone
+    /// collapsedPlayerSize`): no title strip, no close button, square corners.
+    func yt6Restyle() {
+        infoBar.isHidden = true
+        infoBar.constraints
+            .filter { $0.firstAttribute == .height }
+            .forEach { $0.constant = 0 }
+        layer.cornerRadius = 0
+    }
 }

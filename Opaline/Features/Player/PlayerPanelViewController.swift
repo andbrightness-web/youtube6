@@ -288,6 +288,10 @@ private extension PlayerPanelViewController {
 
     @objc
     func handleMiniPan(_ gesture: UIPanGestureRecognizer) {
+        if YT6.isEnabled {
+            yt6HandleCollapsedPan(gesture)
+            return
+        }
         guard !isExpanded, let miniBar else {
             return
         }
@@ -338,8 +342,8 @@ extension PlayerPanelViewController {
             let location = pan.location(in: bar)
             let velocity = pan.velocity(in: bar)
             let touchedView = bar.hitTest(location, with: nil)
-            return abs(velocity.y) > abs(velocity.x)
-                && velocity.y > 0
+            return (YT6.isEnabled || abs(velocity.y) > abs(velocity.x))
+                && (YT6.isEnabled || velocity.y > 0)
                 && !isControlView(touchedView)
         }
         return true

@@ -145,7 +145,7 @@ class MainTabBarController: UITabBarController {
            tabBarFrame.midY > view.bounds.midY {
             inset = max(inset, view.bounds.maxY - tabBarFrame.minY)
         }
-        let constant = -(inset + 12)
+        let constant = -(inset + (YT6.isEnabled ? YT6.collapsedPlayerBottom : 12))
         guard constraint.constant != constant else {
             return
         }
@@ -176,8 +176,8 @@ class MainTabBarController: UITabBarController {
         // sized after device rotation without needing to recreate the constraint.
         let bottom = bar.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         NSLayoutConstraint.activate([
-            bar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-            bar.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 1.0 / 3.0),
+            bar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: YT6.miniTrailing),
+            YT6.miniWidth(of: bar, in: view),
             bottom
         ])
         miniPlayerBarBottomConstraint = bottom
