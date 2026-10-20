@@ -72,7 +72,7 @@ final class PlaylistsViewController: UIViewController {
         )
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.rowHeight = 72
+        tableView.rowHeight = YT6.isEnabled ? YT6PlaylistCell.height : 72
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
         NSLayoutConstraint.activate([
@@ -138,9 +138,10 @@ final class PlaylistsViewController: UIViewController {
     @objc
     private func applyTheme() {
         let theme = ThemeManager.shared
-        view.backgroundColor = theme.background
-        tableView.backgroundColor = theme.background
-        tableView.separatorColor = theme.separator
+        let background = YT6.isEnabled ? YT6VideoRow.background : theme.background
+        view.backgroundColor = background
+        tableView.backgroundColor = background
+        tableView.separatorColor = YT6.isEnabled ? .clear : theme.separator
         tableView.reloadData()
     }
 
@@ -192,6 +193,13 @@ extension PlaylistsViewController: UITableViewDataSource, UITableViewDelegate {
         _ tableView: UITableView,
         cellForRowAt indexPath: IndexPath
     ) -> UITableViewCell {
+        if YT6.isEnabled {
+            return YT6PlaylistCell.dequeue(
+                from: tableView,
+                at: indexPath,
+                with: playlists[indexPath.row]
+            )
+        }
         guard let cell = tableView.dequeueReusableCell(
             withIdentifier: PlaylistCell.reuseId,
             for: indexPath
