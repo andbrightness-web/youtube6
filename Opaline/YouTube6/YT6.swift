@@ -11,6 +11,14 @@ enum YT6 {
     /// into upstream code reads the same way.
     static let isEnabled = true
 
+    /// Content language (`hl`) for Innertube: Russian, so Russian videos
+    /// keep their own titles instead of YouTube's English auto-translations
+    /// on an English-language iPod (REQUEST688). The 2.0.0 interface still
+    /// follows the device language.
+    static var contentLanguage: String? {
+        isEnabled ? AppLanguage.russian.rawValue : nil
+    }
+
     // MARK: Guide
 
     /// `+[YTBaseGuideCell cellWidth]` @5c612.

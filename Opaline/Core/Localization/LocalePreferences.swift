@@ -16,7 +16,7 @@ protocol LocalePreferences {
 /// language without a ContentKeywords table, silently degrading metadata
 /// parsing). Region stays independent.
 struct DefaultLocalePreferences: LocalePreferences {
-    var hl: String { AppLanguage.effective.rawValue }
+    var hl: String { YT6.contentLanguage ?? AppLanguage.effective.rawValue }
 
     /// `gl: "CN"` makes Innertube answer /search with a
     /// `backgroundPromoRenderer` ("Something went wrong") instead of
