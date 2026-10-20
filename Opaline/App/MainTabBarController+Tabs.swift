@@ -4,6 +4,9 @@ import UIKit
 
 extension MainTabBarController {
     func buildTabs() -> [UIViewController] {
+        if YT6.isEnabled {
+            return yt6BuildTabs()
+        }
         var tabs = [makeHomeTab(), makeSubscriptionsTab()]
         // Only for users who want shorts at all — the same setting that
         // hides them from every feed.

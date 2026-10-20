@@ -53,6 +53,10 @@ extension HomeViewController {
     }
 
     func setupChipBar() {
+        // youtube6: 2.0.0 feeds have no chip bar.
+        if YT6.isEnabled {
+            return
+        }
         rebuildChips()
         chipBar.onSelect = { [weak self] index in
             self?.selectCategory(at: index)

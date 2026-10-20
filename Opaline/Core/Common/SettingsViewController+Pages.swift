@@ -70,7 +70,11 @@ extension SettingsViewController {
                     .pagePlayback, .pageShorts, .pageDownloads,
                     .notificationSettings, .pageSponsorBlock,
                     .pageCache, .pageDebug
-                ]
+                ].filter { row in
+                    // youtube6: no Shorts; downloads wait for a later stage
+                    // (REQUEST680).
+                    !YT6.isEnabled || ![.pageShorts, .pageDownloads].contains(row)
+                }
             ),
             Section(
                 header: nil,

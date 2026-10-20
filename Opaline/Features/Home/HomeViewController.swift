@@ -16,6 +16,9 @@ class HomeViewController: VideosViewController {
     var drainTitle: String?
     var categories: [HomeCategory] = [.feed] + HomeCategory.destinations
     var selectedCategoryIndex = 0
+    /// youtube6: a guide row showing one TV destination page (Live) instead
+    /// of the personalized feed.
+    var yt6Destination: String?
     /// Unique shelf titles collected from feed pages, in order of
     /// first appearance — they become the dynamic chips.
     var shelfTitles: [String] = []
@@ -114,7 +117,14 @@ class HomeViewController: VideosViewController {
             name: UIApplication.didBecomeActiveNotification,
             object: nil
         )
-        loadCachedOrFetchFeed()
+        if let browseId = yt6Destination,
+           let index = categories.firstIndex(where: {
+               $0.kind == .destination(browseId: browseId)
+           }) {
+            selectCategory(at: index)
+        } else {
+            loadCachedOrFetchFeed()
+        }
     }
 
     @objc

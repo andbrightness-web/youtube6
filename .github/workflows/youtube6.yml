@@ -43,6 +43,9 @@ jobs:
           # No update feed: an empty URL disables the in-app update poller.
           sed -i '' 's/^APP_MANIFEST_URL.*/APP_MANIFEST_URL =/' Config/Local.xcconfig
 
+      - name: Fetch YouTube 2.0.0 artwork (not stored in the repo)
+        run: ./scripts/yt6-fetch-donor.sh
+
       - name: Build IPA
         env:
           IPA_VERSION: "1.12.0"

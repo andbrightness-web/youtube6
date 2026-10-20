@@ -1,0 +1,31 @@
+# Images taken from the YouTube 2.0.0 (iOS 6) app at build time.
+# They are Google's artwork: never committed, fetched by yt6-fetch-donor.sh.
+YouTubeResources.bundle/titlebar
+YouTubeResources.bundle/logo
+YouTubeResources.bundle/guide
+YouTubeResources.bundle/search
+YouTubeResources.bundle/back_button
+YouTubeResources.bundle/cell_background_guide
+YouTubeResources.bundle/cell_background_guide_selected
+YouTubeResources.bundle/cell_background_guide_tap
+YouTubeResources.bundle/section_background_guide
+YouTubeResources.bundle/expand_guide
+YouTubeResources.bundle/collapse_guide
+YouTubeResources.bundle/what_to_watch_guide
+YouTubeResources.bundle/what_to_watch_guide_selected
+YouTubeResources.bundle/subscriptions_guide
+YouTubeResources.bundle/subscriptions_guide_selected
+YouTubeResources.bundle/watch_later_guide
+YouTubeResources.bundle/watch_later_guide_selected
+YouTubeResources.bundle/history_guide
+YouTubeResources.bundle/history_guide_selected
+YouTubeResources.bundle/playlists_guide
+YouTubeResources.bundle/playlists_guide_selected
+YouTubeResources.bundle/favorites_guide
+YouTubeResources.bundle/favorites_guide_selected
+YouTubeResources.bundle/live_guide
+YouTubeResources.bundle/live_guide_selected
+YouTubeResources.bundle/settings_guide
+YouTubeResources.bundle/settings_guide_selected
+YouTubeResources.bundle/thumbnail_mask_guide
+YouTubeResources.bundle/thumbnail_mask_guide_selected

@@ -55,6 +55,11 @@ final class RotatingNavigationController: UINavigationController {
     /// instead of per screen.
     @objc
     private func applyBarTheme() {
+        if YT6.isEnabled {
+            YT6Chrome.styleNavigationBar(navigationBar)
+            setNeedsStatusBarAppearanceUpdate()
+            return
+        }
         let theme = ThemeManager.shared
         navigationBar.tintColor = theme.isDark ? .white : theme.accent
         if #available(iOS 13.0, *) {

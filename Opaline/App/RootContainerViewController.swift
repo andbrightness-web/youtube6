@@ -9,6 +9,8 @@ import UIKit
 /// while leaving the tab bar with exactly its three tabs.
 final class RootContainerViewController: UIViewController {
     let mainTabBar: MainTabBarController
+    /// youtube6: the 2.0.0 guide sliding the tab bar controller aside.
+    private(set) var yt6Guide: YT6GuideContainer?
 
     // The player panel, when installed, is the last child — and the one that
     // owns the status bar and home indicator while it is on screen.
@@ -50,5 +52,9 @@ final class RootContainerViewController: UIViewController {
         mainTabBar.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(mainTabBar.view)
         mainTabBar.didMove(toParent: self)
+        if YT6.isEnabled {
+            yt6Guide = YT6GuideContainer(root: self, tabs: mainTabBar)
+            yt6Guide?.install()
+        }
     }
 }

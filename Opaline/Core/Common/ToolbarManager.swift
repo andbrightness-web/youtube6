@@ -36,6 +36,9 @@ final class ToolbarManager {
     // MARK: - Install buttons in a view controller
 
     func install(in vc: UIViewController) {
+        if YT6Chrome.replacesToolbar(in: vc) {
+            return
+        }
         let searchBtn = UIBarButtonItem(
             image: resizedNavBarIcon("icon_Magnifyingglass", size: 22),
             style: .plain,
