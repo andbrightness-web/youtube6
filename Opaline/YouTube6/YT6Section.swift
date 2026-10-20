@@ -161,6 +161,11 @@ extension MainTabBarController {
         // 2.0.0 feeds are lists: never TV-style shelf rails.
         let defaults = UserDefaults.standard
         defaults.set(HomeLayout.grid.rawValue, forKey: UserDefaultsKeys.Feed.homeLayout)
+        // No auto-dub in 2013, and its probe cost a second stream build
+        // (REQUEST685) — off unless chosen in Settings.
+        if defaults.object(forKey: UserDefaultsKeys.AutoDub.enabled) == nil {
+            defaults.set(false, forKey: UserDefaultsKeys.AutoDub.enabled)
+        }
         tabBar.isHidden = true
         yt6Stacks = YT6Section.allCases.map { section in
             let root = section.makeRoot(dependencies)
