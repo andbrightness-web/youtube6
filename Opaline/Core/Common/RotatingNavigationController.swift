@@ -86,7 +86,9 @@ final class RotatingNavigationController: UINavigationController {
         // `topViewController == nil` means this is the root being installed —
         // it gets no back button. Screens that manage their own left item
         // (e.g. the watch screen) are left alone.
-        if topViewController != nil,
+        // youtube6: 2.0.0 keeps the system back button (its plate is styled
+        // in YT6Chrome).
+        if topViewController != nil, !YT6.isEnabled,
            viewController.navigationItem.leftBarButtonItem == nil {
             viewController.navigationItem.hidesBackButton = true
             viewController.navigationItem.leftBarButtonItem = NavChevron.barButton(
