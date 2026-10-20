@@ -82,6 +82,10 @@ extension VideosViewController {
     }
 
     func updateItemSize() {
+        if YT6.isEnabled {
+            yt6UpdateItemSize()
+            return
+        }
         guard let collectionView,
               let layout = collectionView
                   .collectionViewLayout
@@ -130,6 +134,7 @@ extension VideosViewController: UICollectionViewDataSource {
         return useRails ? 1 : sections[section].videos.count
     }
 
+    // swiftlint:disable:next function_body_length
     func collectionView(
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
@@ -139,6 +144,9 @@ extension VideosViewController: UICollectionViewDataSource {
         }
         if !isLoadingInitial, usesShortsGrid {
             return shortCell(in: collectionView, at: indexPath)
+        }
+        if YT6.isEnabled {
+            return yt6Cell(in: collectionView, at: indexPath)
         }
         guard let cell = collectionView
             .dequeueReusableCell(

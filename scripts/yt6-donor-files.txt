@@ -39,3 +39,4 @@ YouTubeResources.bundle/education_guide
 YouTubeResources.bundle/education_guide_selected
 YouTubeResources.bundle/howto_guide
 YouTubeResources.bundle/howto_guide_selected
+UILibResources.bundle/grouped_table_card_middle

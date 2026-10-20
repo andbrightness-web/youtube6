@@ -158,6 +158,9 @@ extension MainTabBarController {
     /// Shorts are cut entirely (REQUEST680).
     func yt6BuildTabs() -> [UIViewController] {
         UserDefaults.standard.set(false, forKey: UserDefaultsKeys.Feed.showShorts)
+        // 2.0.0 feeds are lists: never TV-style shelf rails.
+        let defaults = UserDefaults.standard
+        defaults.set(HomeLayout.grid.rawValue, forKey: UserDefaultsKeys.Feed.homeLayout)
         tabBar.isHidden = true
         yt6Stacks = YT6Section.allCases.map { section in
             let root = section.makeRoot(dependencies)

@@ -75,9 +75,12 @@ extension VideosViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         insetForSectionAt section: Int
     ) -> UIEdgeInsets {
+        if YT6.isEnabled {
+            return .zero
+        }
         // The default per-section inset would double the vertical gap
         // between stacked sections — only the first keeps a top inset.
-        UIEdgeInsets(
+        return UIEdgeInsets(
             top: section == 0 ? 12 : 0,
             left: 8,
             bottom: 12,

@@ -35,6 +35,9 @@ extension SubscriptionVideoCell {
     /// compute `heightForRowAt` without a live cell. Memoized per
     /// (title, width): table view delegates re-ask this every scroll pass.
     static func rowHeight(forWidth width: CGFloat, title: String) -> CGFloat {
+        if YT6.isEnabled {
+            return YT6VideoRow.height
+        }
         guard width <= 500 else {
             return 220
         }

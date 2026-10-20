@@ -52,7 +52,7 @@ extension SubscriptionsViewController {
 
     func setupTableView() {
         tableView.register(
-            SubscriptionVideoCell.self,
+            YT6.listCellClass,
             forCellReuseIdentifier:
                 SubscriptionVideoCell.reuseId
         )

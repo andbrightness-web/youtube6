@@ -72,7 +72,7 @@ final class PlaylistVideosViewController: UIViewController {
 
     private func setupTableView() {
         tableView.register(
-            SubscriptionVideoCell.self,
+            YT6.listCellClass,
             forCellReuseIdentifier: SubscriptionVideoCell.reuseId
         )
         tableView.dataSource = self
