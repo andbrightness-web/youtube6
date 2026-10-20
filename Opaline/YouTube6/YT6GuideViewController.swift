@@ -5,7 +5,7 @@ import UIKit
 ///
 /// Sections, in 2.0.0 order: ACCOUNT (Sign In / the account, with Watch
 /// Later, History, Playlists and Liked disclosed under it), What To Watch and
-/// My Subscriptions, FROM YOUTUBE (Live), Settings.
+/// My Subscriptions, FROM YOUTUBE (Live and categories), Settings.
 final class YT6GuideViewController: UITableViewController {
     enum Row: Equatable {
         case account
@@ -27,7 +27,10 @@ final class YT6GuideViewController: UITableViewController {
         return [
             (YT6.string("guide_section.account", fallback: "ACCOUNT"), account),
             (nil, [.section(.whatToWatch), .section(.subscriptions)]),
-            (YT6.string("guide_section.from_youtube", fallback: "FROM YOUTUBE"), [.section(.live)]),
+            (
+                YT6.string("guide_section.from_youtube", fallback: "FROM YOUTUBE"),
+                YT6Section.fromYouTube.map(Row.section)
+            ),
             (nil, [.settings])
         ]
     }

@@ -29,3 +29,13 @@ YouTubeResources.bundle/settings_guide
 YouTubeResources.bundle/settings_guide_selected
 YouTubeResources.bundle/thumbnail_mask_guide
 YouTubeResources.bundle/thumbnail_mask_guide_selected
+YouTubeResources.bundle/news_guide
+YouTubeResources.bundle/news_guide_selected
+YouTubeResources.bundle/games_guide
+YouTubeResources.bundle/games_guide_selected
+YouTubeResources.bundle/sports_guide
+YouTubeResources.bundle/sports_guide_selected
+YouTubeResources.bundle/education_guide
+YouTubeResources.bundle/education_guide_selected
+YouTubeResources.bundle/howto_guide
+YouTubeResources.bundle/howto_guide_selected

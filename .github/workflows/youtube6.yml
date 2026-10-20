@@ -52,7 +52,10 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           UPDATE_SOURCE: "0"
           RELEASE_BUNDLE_ID: local.ipodos.youtube6
-          XCODEBUILD_EXTRA_ARGS: CODE_SIGNING_ALLOWED=NO INFOPLIST_KEY_CFBundleDisplayName=YouTube
+          XCODEBUILD_EXTRA_ARGS: >-
+            CODE_SIGNING_ALLOWED=NO
+            INFOPLIST_KEY_CFBundleDisplayName=YouTube
+            ASSETCATALOG_COMPILER_APPICON_NAME=YT6AppIcon
         run: ./make_ipa.sh
 
       - name: Build deb

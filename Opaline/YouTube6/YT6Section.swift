@@ -16,6 +16,11 @@ enum YT6Section: Int, CaseIterable {
     case playlists = 4
     case liked = 5
     case live = 6
+    case news = 7
+    case gaming = 8
+    case sports = 9
+    case learning = 10
+    case fashion = 11
 
     private struct Info {
         let key: String
@@ -24,7 +29,10 @@ enum YT6Section: Int, CaseIterable {
         let icon: String
         /// Account rows are hidden while signed out, as `YTGuideTableView`
         /// shows only "Sign In" then.
-        let needsAccount: Bool
+        var needsAccount = false
+        /// A TV destination page shown by `HomeViewController`; its title is
+        /// Opaline's (`key` is then an Opaline localization key).
+        var browseId: String?
 
         init(_ key: String, _ fallback: String, _ icon: String, account: Bool) {
             self.key = key
@@ -32,7 +40,18 @@ enum YT6Section: Int, CaseIterable {
             self.icon = icon
             self.needsAccount = account
         }
+
+        init(_ key: String, _ icon: String, destination: String) {
+            self.key = key
+            self.fallback = key
+            self.icon = icon
+            self.browseId = destination
+        }
     }
+
+    /// FROM YOUTUBE: Live and the categories (REQUEST682). 2.0.0 listed
+    /// YouTube's categories here; today's TV destinations take their place.
+    static let fromYouTube: [Self] = [.live, .news, .gaming, .sports, .learning, .fashion]
 
     private static let table: [Info] = [
         Info("guide.what_to_watch", "What To Watch", "what_to_watch_guide", account: false),
@@ -42,7 +61,17 @@ enum YT6Section: Int, CaseIterable {
         Info("account.playlists", "Playlists", "playlists_guide", account: true),
         // 2.0.0 had Favorites here; YouTube has none now (REQUEST680).
         Info("", "Liked videos", "favorites_guide", account: true),
-        Info("guide.live", "Live", "live_guide", account: false)
+        Info("guide.live", "Live", "live_guide", account: false),
+        Info("home.category.news", "news_guide", destination: BrowseID.newsDestination),
+        Info("home.category.gaming", "games_guide", destination: BrowseID.gamingDestination),
+        Info("home.category.sports", "sports_guide", destination: BrowseID.sportsDestination),
+        Info(
+            "home.category.learning",
+            "education_guide",
+            destination: BrowseID.learningDestination
+        ),
+        // 2.0.0's "Howto & Style" icon.
+        Info("home.category.fashion", "howto_guide", destination: BrowseID.fashionDestination)
     ]
 
     private var info: Info { Self.table[rawValue] }
@@ -53,6 +82,9 @@ enum YT6Section: Int, CaseIterable {
                 ? "Понравившиеся"
                 : info.fallback
         }
+        if info.browseId != nil {
+            return info.key.localized
+        }
         return YT6.string(info.key, fallback: info.fallback)
     }
 
@@ -62,12 +94,12 @@ enum YT6Section: Int, CaseIterable {
     func makeRoot(_ dependencies: AppDependencies) -> UIViewController {
         let channels = dependencies.makeChannelViewController
         switch self {
-        case .whatToWatch, .live:
+        case .whatToWatch, .live, .news, .gaming, .sports, .learning, .fashion:
             let home = HomeViewController(
                 service: dependencies.feedService,
                 channelViewControllerFactory: channels
             )
-            home.yt6Destination = self == .live ? BrowseID.liveDestination : nil
+            home.yt6Destination = self == .live ? BrowseID.liveDestination : info.browseId
             return home
         case .subscriptions:
             return dependencies.makeSubscriptionsViewController()

@@ -59,7 +59,11 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
 
     @objc
     func toggle() {
-        isOpen ? close() : open()
+        if isOpen {
+            close()
+        } else {
+            open()
+        }
     }
 
     func open() {

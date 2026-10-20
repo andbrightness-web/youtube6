@@ -26,6 +26,22 @@ grep -v '^#' scripts/yt6-donor-files.txt | while read -r path; do
   [ -f "$OUT/yt6_$name@2x.png" ] || { echo "missing $path@2x.png" >&2; exit 1; }
 done
 
+# The 2.0.0 home screen icon (Icon@2x.png, 114 px) as an app icon set for the
+# iPhone sizes iOS 12 asks for; the build selects it with
+# ASSETCATALOG_COMPILER_APPICON_NAME=YT6AppIcon. Needs macOS sips.
+if command -v sips >/dev/null; then
+  SET="$OUT/YT6Icons.xcassets/YT6AppIcon.appiconset"
+  mkdir -p "$SET"
+  printf '{"info":{"version":1,"author":"xcode"}}' > "$OUT/YT6Icons.xcassets/Contents.json"
+  images=""
+  for spec in 20:2 20:3 29:2 29:3 40:2 40:3 60:2 60:3; do
+    pt=${spec%:*}; sc=${spec#*:}; px=$((pt * sc)); file="icon-$px.png"
+    sips -z "$px" "$px" "$APP/Icon@2x.png" --out "$SET/$file" >/dev/null
+    images="$images{\"idiom\":\"iphone\",\"size\":\"${pt}x${pt}\",\"scale\":\"${sc}x\",\"filename\":\"$file\"},"
+  done
+  printf '{"images":[%s],"info":{"version":1,"author":"xcode"}}' "${images%,}" > "$SET/Contents.json"
+fi
+
 # Guide and section titles as shipped in 2.0.0, in every language it had.
 python3 - "$APP" "$OUT/yt6_strings.json" <<'PY'
 import json, os, plistlib, sys
