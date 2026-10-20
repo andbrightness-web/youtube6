@@ -10,13 +10,23 @@ final class YT6GuideViewController: UITableViewController {
     enum Row: Equatable {
         case account
         case section(YT6Section)
+        /// A subscribed channel, by index into `channels`.
+        case channel(Int)
         case settings
     }
 
     var onSelect: ((Row) -> Void)?
     private(set) var selectedSection: YT6Section = .whatToWatch
+    /// `YTGuideTableView showSubscriptionsSection`: the subscribed channels,
+    /// listed under My Subscriptions.
+    private(set) var channels: [SubscribedChannel] = []
+    private var selectedChannelId: String?
     /// `-[YTGuideTableView toggleDiscloseAccount]`.
     private var accountDisclosed = true
+
+    private var channelRows: [Row] {
+        channels.indices.map(Row.channel)
+    }
 
     private var sections: [(header: String?, rows: [Row])] {
         let signedIn = OAuthClient.shared.isSignedIn
@@ -26,7 +36,7 @@ final class YT6GuideViewController: UITableViewController {
         }
         return [
             (YT6.string("guide_section.account", fallback: "ACCOUNT"), account),
-            (nil, [.section(.whatToWatch), .section(.subscriptions)]),
+            (nil, [Row.section(.whatToWatch), .section(.subscriptions)] + channelRows),
             (
                 YT6.string("guide_section.from_youtube", fallback: "FROM YOUTUBE"),
                 YT6Section.fromYouTube.map(Row.section)
@@ -48,6 +58,7 @@ final class YT6GuideViewController: UITableViewController {
         super.viewDidLoad()
         tableView.backgroundColor = YT6.guideBackground
         tableView.separatorStyle = .none
+        reloadChannels()
         tableView.showsVerticalScrollIndicator = false
         tableView.rowHeight = YT6.guideRowHeight
         tableView.register(YT6GuideCell.self, forCellReuseIdentifier: YT6GuideCell.reuseID)
@@ -67,8 +78,28 @@ final class YT6GuideViewController: UITableViewController {
         tableView.reloadData()
     }
 
+    /// Channels from upstream's cache; fetched once when there are none.
+    func reloadChannels() {
+        channels = AppCache.shared.subscribedChannels ?? []
+        tableView.reloadData()
+        guard channels.isEmpty, OAuthClient.shared.isSignedIn else {
+            return
+        }
+        ServiceContainer.subscribedChannels.fetchSubscribedChannels { [weak self] result in
+            guard case .success(let fetched) = result else {
+                return
+            }
+            DispatchQueue.main.async {
+                AppCache.shared.setSubscribedChannels(fetched)
+                self?.channels = fetched
+                self?.tableView.reloadData()
+            }
+        }
+    }
+
     func select(_ section: YT6Section) {
         selectedSection = section
+        selectedChannelId = nil
         tableView.reloadData()
     }
 
@@ -122,9 +153,11 @@ final class YT6GuideViewController: UITableViewController {
                 YT6GuideCell.Content(
                     title: section.title,
                     icon: section.icon,
-                    selected: section == selectedSection
+                    selected: section == selectedSection && selectedChannelId == nil
                 )
             )
+        case .channel(let index):
+            configureChannel(guideCell, channels[index])
         case .settings:
             guideCell.configure(
                 YT6GuideCell.Content(
@@ -134,6 +167,16 @@ final class YT6GuideViewController: UITableViewController {
             )
         }
         return guideCell
+    }
+
+    private func configureChannel(_ cell: YT6GuideCell, _ channel: SubscribedChannel) {
+        cell.configure(
+            YT6GuideCell.Content(
+                title: channel.title,
+                selected: channel.id == selectedChannelId,
+                avatarURL: channel.avatarURL
+            )
+        )
     }
 
     private func configureAccount(_ cell: YT6GuideCell) {
@@ -160,126 +203,10 @@ final class YT6GuideViewController: UITableViewController {
         let row = row(at: indexPath)
         if case .section(let section) = row {
             select(section)
+        } else if case .channel(let index) = row {
+            selectedChannelId = channels[index].id
+            tableView.reloadData()
         }
         onSelect?(row)
-    }
-}
-
-/// `YTGuideSectionHeader`: `section_background_guide.png` with the title in
-/// `XXSmallLightFont`/`cellGuideSectionHeaderColor`, 10 pt from the left.
-final class YT6GuideSectionHeader: UIView {
-    private let background = UIImageView(image: YT6.stretchableImage("section_background_guide"))
-    private let label = UILabel()
-
-    init(text: String) {
-        super.init(frame: CGRect(x: 0, y: 0, width: YT6.guideWidth, height: YT6.guideHeaderHeight))
-        addSubview(background)
-        label.font = YT6.xxSmallLightFont
-        label.textColor = YT6.guideSectionHeader
-        label.backgroundColor = .clear
-        label.text = text
-        addSubview(label)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) is not supported")
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        background.frame = bounds
-        label.sizeToFit()
-        label.frame.origin = CGPoint(
-            x: YT6.guideHeaderPadding,
-            y: ((bounds.height - label.frame.height) / 2).rounded()
-        )
-    }
-}
-
-/// `YTBaseGuideCell`: background plate (`cell_background_guide[_selected]`,
-/// `_tap` while pressed), 35 pt icon at (7, 10), title 10 pt right of it,
-/// 168 wide, `XLargeLightFont`, gray / white when selected.
-final class YT6GuideCell: UITableViewCell {
-    struct Content {
-        var title: String
-        var icon: String?
-        var selected = false
-        var disclosure: String?
-    }
-
-    static let reuseID = "YT6GuideCell"
-
-    var onDisclosure: (() -> Void)?
-    private let plate = UIImageView()
-    private let icon = UIImageView()
-    private let title = UILabel()
-    private let disclosureButton = UIButton(type: .custom)
-    private var isEntrySelected = false
-
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        selectionStyle = .none
-        backgroundColor = YT6.guideBackground
-        backgroundView = plate
-        icon.contentMode = .center
-        contentView.addSubview(icon)
-        title.font = YT6.xLargeLightFont
-        title.backgroundColor = .clear
-        contentView.addSubview(title)
-        disclosureButton.addTarget(self, action: #selector(tapDisclosure), for: .touchUpInside)
-        contentView.addSubview(disclosureButton)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) is not supported")
-    }
-
-    func configure(_ content: Content) {
-        isEntrySelected = content.selected
-        title.text = content.title
-        icon.image = content.icon.flatMap { YT6.image(content.selected ? $0 + "_selected" : $0) }
-        disclosureButton.setImage(content.disclosure.flatMap(YT6.image), for: .normal)
-        disclosureButton.isHidden = content.disclosure == nil
-        onDisclosure = nil
-        updatePressedAppearance()
-        setNeedsLayout()
-    }
-
-    override func setHighlighted(_ highlighted: Bool, animated: Bool) {
-        super.setHighlighted(highlighted, animated: animated)
-        updatePressedAppearance()
-    }
-
-    /// `-[YTBaseGuideCell updatePressedAppearance]` @5c8cc.
-    private func updatePressedAppearance() {
-        plate.image = YT6.stretchableImage(
-            isHighlighted ? "cell_background_guide_tap"
-                : isEntrySelected ? "cell_background_guide_selected" : "cell_background_guide"
-        )
-        title.textColor = isEntrySelected ? YT6.guideTitleSelected : YT6.guideTitle
-    }
-
-    @objc
-    private func tapDisclosure() {
-        onDisclosure?()
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let size = YT6.guideIconSize
-        icon.frame = CGRect(origin: YT6.guideIconOrigin, size: CGSize(width: size, height: size))
-        let lineHeight = title.font.lineHeight.rounded(.up)
-        title.frame = CGRect(
-            x: icon.frame.maxX + YT6.guideTitleGap,
-            y: (icon.frame.midY - lineHeight / 2).rounded(),
-            width: YT6.guideTitleWidth,
-            height: lineHeight
-        )
-        // APPROXIMATION: disclosure button right-aligned in a 44 pt square.
-        disclosureButton.frame = CGRect(
-            x: YT6.guideWidth - 44, y: (bounds.height - 44) / 2, width: 44, height: 44
-        )
     }
 }

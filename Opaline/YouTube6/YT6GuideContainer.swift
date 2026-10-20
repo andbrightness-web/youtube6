@@ -82,6 +82,7 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
     }
 
     func open() {
+        guide.reloadChannels()
         setOffset(YT6.guideWidth, animated: true)
     }
 
@@ -133,10 +134,29 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
         case .account:
             close()
             topScreen()?.toolbarOpenProfile()
+        case .channel(let index):
+            showChannel(guide.channels[index])
         case .settings:
             close()
             topScreen()?.toolbarOpenSettings()
         }
+    }
+
+    /// A channel picked in the guide opens on top of My Subscriptions.
+    private func showChannel(_ channel: SubscribedChannel) {
+        tabs.yt6Select(.subscriptions)
+        close()
+        guard let nav = tabs.selectedViewController as? UINavigationController,
+              let root = nav.viewControllers.first
+        else {
+            return
+        }
+        let page = tabs.dependencies.makeChannelViewController(
+            channelId: channel.id,
+            channelName: channel.title
+        )
+        nav.setViewControllers([root, page], animated: false)
+        decorateSelectedSection()
     }
 
     private func topScreen() -> UIViewController? {
