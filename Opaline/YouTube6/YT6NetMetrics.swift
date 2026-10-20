@@ -35,6 +35,20 @@ extension YT6 {
     /// Session for googlevideo byte-range requests: `URLSession.shared`
     /// upstream; here the same configuration with timing logged.
     static let mediaSession: URLSession = isEnabled
-        ? URLSession(configuration: .default, delegate: YT6NetMetrics(), delegateQueue: nil)
+        ? URLSession(
+            configuration: mediaConfiguration,
+            delegate: YT6NetMetrics(),
+            delegateQueue: nil
+        )
         : .shared
+
+    /// One connection per googlevideo host: the identity probe and both
+    /// index requests then share a single warm connection. Each new
+    /// connection through the device's proxy risked a ~5.3 s stall
+    /// (REQUEST687, log 22:42–22:43: 6–9 new connections per video).
+    private static var mediaConfiguration: URLSessionConfiguration {
+        let config = URLSessionConfiguration.default
+        config.httpMaximumConnectionsPerHost = 1
+        return config
+    }
 }
