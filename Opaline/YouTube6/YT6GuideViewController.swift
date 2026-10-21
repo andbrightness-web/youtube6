@@ -29,6 +29,9 @@ final class YT6GuideViewController: UITableViewController {
     }
 
     private var sections: [(header: String?, rows: [Row])] {
+        if YT6.isEnabled, YT6Source.isLocal {
+            return yt6LocalSections
+        }
         let signedIn = OAuthClient.shared.isSignedIn
         var account: [Row] = [.account]
         if signedIn, accountDisclosed {
@@ -68,7 +71,8 @@ final class YT6GuideViewController: UITableViewController {
         let names = [
             UserProfileStore.didUpdateNotification,
             .userDidSignOut,
-            DownloadStore.didChangeNotification
+            DownloadStore.didChangeNotification,
+            YT6AndCastCatalog.didChangeNotification
         ]
         for name in names {
             NotificationCenter.default.addObserver(
@@ -82,11 +86,19 @@ final class YT6GuideViewController: UITableViewController {
 
     @objc
     func reload() {
+        if YT6Source.isLocal {
+            channels = YT6Library.shared.channels
+        }
         tableView.reloadData()
     }
 
     /// Channels from upstream's cache; fetched once when there are none.
+    /// In the local source modes, the library's channels.
     func reloadChannels() {
+        guard !YT6Source.isLocal else {
+            reload()
+            return
+        }
         channels = AppCache.shared.subscribedChannels ?? []
         tableView.reloadData()
         guard channels.isEmpty, OAuthClient.shared.isSignedIn else {

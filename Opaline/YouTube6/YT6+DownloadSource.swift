@@ -99,6 +99,19 @@ extension VideoDownloader {
         for videoId: String,
         completion: @escaping (Result<[DownloadOption], Error>) -> Void
     ) {
+        YT6AndCastDownload.options(for: videoId) { [weak self] server in
+            if let server {
+                completion(server)
+            } else {
+                self?.yt6YouTubeOptions(for: videoId, completion: completion)
+            }
+        }
+    }
+
+    private func yt6YouTubeOptions(
+        for videoId: String,
+        completion: @escaping (Result<[DownloadOption], Error>) -> Void
+    ) {
         let started = CACurrentMediaTime()
         let apiClient = apiClient
         guard !YT6ChainMemory.isBotChecked(YT6DownloadRoute.visionOS) else {

@@ -133,6 +133,10 @@ extension PlaybackFacade {
             chain?.dubCapableSource()
         }
         activeVideoSource = source
+        if YT6.isEnabled, let server = YT6AndCastSource.make(videoId: videoId, network: source) {
+            activeVideoSource = server
+            return server
+        }
         return source
     }
 
@@ -173,7 +177,7 @@ extension PlaybackFacade {
         lastRecoveryAt = Date()
         recoveryAttempts += 1
         if YT6.isEnabled {
-            YT6PlaybackCache.forget(videoId: videoId)
+            YT6AndCastSource.noteRecovery(activeVideoSource, videoId: videoId)
         }
         guard recoveryAttempts <= 2 else {
             AppLog.player("recovery: retries spent, giving up")
@@ -219,6 +223,9 @@ extension PlaybackFacade {
             let count = activeVideoSource?.availableQualities.count ?? 0
             AppLog.player("source \(name) playing, \(count) qualities")
             context?.attachPrepared(prepared, resumeAt: nil)
+            if YT6.isEnabled {
+                YT6SourceBadge.show(for: activeVideoSource, in: context)
+            }
             fetchWatchtimeAndTrack()
         case .failure(let error):
             AppLog.player("source playback failed: \(error)")
