@@ -103,7 +103,7 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
             content.layer.shadowPath = UIBezierPath(rect: content.bounds).cgPath
         }
         let changes = {
-            self.content.frame.origin.x = offset
+            self.moveContent(to: offset)
         }
         let done: (Bool) -> Void = { _ in
             self.isOpen = opening
@@ -169,6 +169,19 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
 
     // MARK: Pan (`pan:`, `bounceWithOffset:`)
 
+    /// The watch page belongs to the content area in 2.0.0 (`YTContentView`)
+    /// and slides aside with it (REQUEST704). Its controller has to stay a
+    /// child of the root container — a view of it inside the tab bar
+    /// controller's view crashed UIKit on opening a video (REQUEST707) — so
+    /// it is moved by the same offset, and lets touches through to the
+    /// content's close shield while the guide is open.
+    private func moveContent(to x: CGFloat) {
+        content.frame.origin.x = x
+        let page = root?.children.compactMap { $0 as? PlayerPanelViewController }.first?.view
+        page?.frame.origin.x = x
+        page?.isUserInteractionEnabled = x == 0
+    }
+
     @objc
     private func handlePan(_ gesture: UIPanGestureRecognizer) {
         let width = YT6.guideWidth
@@ -179,7 +192,7 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
             content.layer.shadowPath = UIBezierPath(rect: content.bounds).cgPath
         case .changed:
             let x = panStartOffset + gesture.translation(in: root?.view).x
-            content.frame.origin.x = min(max(x, 0), width)
+            moveContent(to: min(max(x, 0), width))
         case .ended, .cancelled:
             let velocity = gesture.velocity(in: root?.view).x
             let x = content.frame.origin.x

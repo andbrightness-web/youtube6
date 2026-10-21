@@ -162,12 +162,9 @@ class MainTabBarController: UITabBarController {
         // into the container's view — which is above ours, tab bar included.
         let host: UIViewController = parent ?? self
         host.addChild(panel)
-        // youtube6: the page lives in the content area, which the guide
-        // slides aside — 2.0.0's watch view is part of `YTContentView`.
-        let stage: UIView = YT6.isEnabled ? view : host.view
-        panel.view.frame = YT6.isEnabled ? YT6.pageFrame(in: stage) : host.view.bounds
+        panel.view.frame = YT6.isEnabled ? YT6.pageFrame(in: host.view) : host.view.bounds
         panel.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        stage.addSubview(panel.view)
+        host.view.addSubview(panel.view)
         panel.didMove(toParent: host)
         panel.owner = self
         playerPanel = panel
