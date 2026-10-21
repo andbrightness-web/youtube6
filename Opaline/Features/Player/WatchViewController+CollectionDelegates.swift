@@ -206,6 +206,7 @@ extension WatchViewController: UIScrollViewDelegate {
             // 2.0.0 reveals more related videos with «ДРУГИЕ ВАРИАНТЫ», not
             // by scrolling to the end.
             yt6.didScroll(scrollView)
+            yt6LoadMoreCommentsIfNeeded(scrollView)
             return
         }
         if scrollView === relatedCollectionView {

@@ -34,7 +34,7 @@ extension WatchViewController {
             presentDownloadProgressMenu()
         } else if DownloadStore.isDownloaded(video.id) {
             presentPlayerMenu(
-                title: "player.action.download".localized,
+                title: YT6.isEnabled ? yt6SaveToDeviceTitle : "player.action.download".localized,
                 items: DownloadMenu.items(
                     for: video, from: self, anchor: downloadButton
                 )
@@ -57,6 +57,10 @@ extension WatchViewController {
     /// the save button marks a video that sits in a playlist.
     @objc
     func updateDownloadButton() {
+        if YT6.isEnabled {
+            yt6UpdateDownloadButton()
+            return
+        }
         let video = downloadVideo
         let downloader = VideoDownloader.shared
         let running = downloader.activeVideoId == video.id

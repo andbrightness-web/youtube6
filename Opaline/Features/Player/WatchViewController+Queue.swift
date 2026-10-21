@@ -38,6 +38,10 @@ extension WatchViewController {
     /// used to carry as a section of its own, where it read as one feed with
     /// the suggestions below it.
     func showQueue() {
+        if YT6.isEnabled {
+            yt6SetVideoListExpanded(true, animated: true)
+            return
+        }
         queuePanel.applyTheme(ThemeManager.shared)
         queuePanel.setRepeating(videoPlayerView?.isLooping == true)
         queuePanel.reload()
@@ -50,6 +54,10 @@ extension WatchViewController {
     /// not over a fullscreen player, and not under the panel that lists the
     /// same queue.
     func updateQueueBar() {
+        if YT6.isEnabled {
+            yt6UpdateVideoList()
+            return
+        }
         let hasQueue = !queue.videos.isEmpty
         // Repeat belongs to the queue, and the panel owns it there — two
         // repeat controls with different meanings is one too many.
@@ -175,7 +183,7 @@ extension WatchViewController {
         refreshQueuePanel()
     }
 
-    private func loadMoreQueue() {
+    func loadMoreQueue() {
         guard let token = queue.continuation,
               !isLoadingQueuePage
         else {
