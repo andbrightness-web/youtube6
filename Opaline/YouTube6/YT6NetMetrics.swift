@@ -66,5 +66,4 @@ extension YT6 {
             )
             : .shared
     }
-
 }

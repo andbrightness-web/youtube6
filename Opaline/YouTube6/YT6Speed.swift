@@ -97,7 +97,10 @@ final class YT6Speed {
     }
 
     private func onMain(_ work: @escaping () -> Void) {
-        Thread.isMainThread ? work() : DispatchQueue.main.async(execute: work)
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
+        }
     }
-
 }
