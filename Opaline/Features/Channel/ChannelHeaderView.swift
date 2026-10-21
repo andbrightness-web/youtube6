@@ -59,6 +59,9 @@ final class ChannelHeaderView: UIView {
         badgeWidthRef?.constant = info.isVerified ? 14 : 0
         loadImage(info.avatarURL, into: avatarView)
         loadImage(info.bannerURL, into: bannerImageView)
+        if YT6.isEnabled {
+            yt6Update(with: info)
+        }
     }
 
     func updateSubscription(title: String, isEnabled: Bool) {
@@ -67,6 +70,10 @@ final class ChannelHeaderView: UIView {
     }
 
     func applyTheme(isSubscribed: Bool) {
+        if YT6.isEnabled {
+            yt6ApplyStyle(isSubscribed: isSubscribed)
+            return
+        }
         let theme = ThemeManager.shared
         backgroundColor = theme.background
         bannerImageView.backgroundColor = theme.surface

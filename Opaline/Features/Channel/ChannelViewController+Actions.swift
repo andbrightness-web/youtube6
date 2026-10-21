@@ -8,6 +8,9 @@ extension ChannelViewController {
         currentChannelPage?.info = info
         headerView.update(with: info, fallback: initialChannelName)
         title = info.title.isEmpty ? initialChannelName : info.title
+        if YT6.isEnabled {
+            title = YT6.Channel.title
+        }
         updateInfoBarButton(for: info)
     }
 
@@ -18,6 +21,9 @@ extension ChannelViewController {
         )
         title = page.info.title.isEmpty
             ? initialChannelName : page.info.title
+        if YT6.isEnabled {
+            title = YT6.Channel.title
+        }
         applyPageSubscription(page)
         updateInfoBarButton(for: page.info)
         let enriched = page.withChannelAvatars()
