@@ -40,10 +40,13 @@ enum YT6ChainMemory {
 
     /// The chain for one open: bot-checked clients after the others, each
     /// group in the user's order.
-    static func ordered(_ steps: [PlaybackStep]) -> [PlaybackStep] {
+    static func ordered(_ steps: [PlaybackStep], logs: Bool = true) -> [PlaybackStep] {
         let late = steps.filter { isCooling(client(of: $0)) }
         guard !late.isEmpty, late.count < steps.count else {
             return steps
+        }
+        guard logs else {
+            return steps.filter { !isCooling(client(of: $0)) } + late
         }
         AppLog.player(
             "[Speed] chain: bot-checked last — \(late.map(\.id).joined(separator: ", "))"

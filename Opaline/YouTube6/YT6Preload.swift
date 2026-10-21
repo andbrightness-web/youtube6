@@ -22,9 +22,10 @@ enum YT6Preload {
     private static var running: VideoSource?
 
     static func warm(_ videoId: String, apiClient: WatchService) {
+        let steps = YT6ChainMemory.ordered(PlaybackChainSettings.activeSteps(), logs: false)
         guard running == nil, !warmed.contains(videoId),
               !DownloadStore.isDownloaded(videoId),
-              let step = YT6ChainMemory.ordered(PlaybackChainSettings.activeSteps()).first,
+              let step = steps.first,
               let source = step.make(apiClient) as? InnertubeVideoSource else {
             return
         }
