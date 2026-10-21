@@ -8,6 +8,7 @@ extension WatchViewController {
     func startPlayback() {
         if YT6.isEnabled {
             YT6Speed.shared.markTap(initialVideo.id)
+            yt6ShowLoading()
         }
         playbackFacade.watchtimeTracker.timeProvider = { [weak self] in
             self?.videoPlayerView?.player?.currentTime().seconds ?? 0
@@ -54,6 +55,7 @@ extension WatchViewController {
         playerContainer.bringSubviewToFront(pv)
         pv.attach(player: player)
         if YT6.isEnabled {
+            pv.isHidden = false
             YT6Speed.shared.watch(player: player, layer: pv.playerLayer)
         }
         // Start as soon as the first frames are decodable instead of
@@ -73,6 +75,9 @@ extension WatchViewController {
         player.replaceCurrentItem(with: item)
         // The duration KVO binds player.currentItem — rebind after the swap.
         videoPlayerView?.rebind(player: player)
+        if YT6.isEnabled {
+            videoPlayerView?.isHidden = false
+        }
         player.play()
     }
 

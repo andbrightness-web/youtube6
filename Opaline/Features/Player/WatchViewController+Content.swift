@@ -294,8 +294,11 @@ extension WatchViewController {
         // next queued item and already sits in the section above.
         let queued = Set((page.playlistVideos ?? []).map(\.id))
         if let next = page.nextVideo, !queued.contains(next.id) {
+            // youtube6: the autoplay entry carries no duration; its copy in
+            // the related list does (REQUEST698).
+            let listed = YT6.isEnabled ? related.first { $0.id == next.id } : nil
             related.removeAll { $0.id == next.id }
-            let enriched = enrichWithChannelId(next, from: related)
+            let enriched = enrichWithChannelId(listed ?? next, from: related)
             related.insert(enriched, at: 0)
         }
         // The page arrives twice — from the cache, then from the network —

@@ -32,9 +32,33 @@ extension VideoPlayerView {
         ccButton.setImage(YT6.image("player_bar_cc"), for: .normal)
         ccButton.setImage(YT6.image("player_bar_cc_selected"), for: .selected)
         yt6AddCollapseButton()
+        yt6PlaceSettings()
         yt6PlacePreviousNext()
         yt6UpdateIcons()
         yt6ActivateBar(bar)
+    }
+
+    /// Upstream's settings stays (quality, captions, speed live there), in
+    /// the corner 2.0.0 gives its TV button: top right, 8 pt in, the same
+    /// size and line as the collapse button opposite (REQUEST698).
+    private func yt6PlaceSettings() {
+        let own = settingsButton.constraints.filter { $0.firstItem === settingsButton }
+        let placed = controlsView.constraints.filter {
+            $0.firstItem === settingsButton
+                && ($0.firstAttribute == .top || $0.firstAttribute == .trailing)
+        }
+        NSLayoutConstraint.deactivate(own + placed)
+        let safe = controlsView.safeAreaLayoutGuide
+        let inset = YT6.Watch.collapseInset
+        NSLayoutConstraint.activate([
+            settingsButton.topAnchor.constraint(equalTo: safe.topAnchor, constant: inset),
+            settingsButton.trailingAnchor.constraint(
+                equalTo: safe.trailingAnchor,
+                constant: -inset
+            ),
+            settingsButton.widthAnchor.constraint(equalToConstant: Self.yt6ButtonSize),
+            settingsButton.heightAnchor.constraint(equalToConstant: Self.yt6ButtonSize)
+        ])
     }
 
     /// Upstream's previous/next video buttons hang off the centred play

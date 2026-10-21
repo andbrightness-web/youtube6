@@ -23,6 +23,10 @@ final class TopBarAutoHider {
     }
 
     func handleScroll(_ scrollView: UIScrollView) {
+        if YT6.isEnabled {
+            // 2.0.0's title bar never leaves (REQUEST698).
+            return
+        }
         // Deltas use the raw offset, not the inset-adjusted position:
         // hiding the bar shrinks adjustedContentInset, which would
         // read as a fake scroll-up and pop the bar right back out.

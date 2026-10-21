@@ -55,6 +55,8 @@ final class LocalMediaServer {
     private let listener: NWListener
     private let handler: Handler
     private let queue = DispatchQueue(label: "com.ytvlite.local-media-server")
+    /// youtube6: segments answered as streams (`LocalMediaServer+YT6`).
+    var yt6Streamer: ((String) -> YT6SegmentStream?)?
     /// Accepted connections, so stopping the server takes them down too —
     /// cancelling the listener alone leaves them open for the rest of the
     /// session, one set per video watched.
@@ -162,7 +164,7 @@ final class LocalMediaServer {
 
     /// Reads until the end of the request head. No bodies: these are all GETs
     /// and HEADs.
-    private func receiveRequest(on connection: NWConnection, buffer: Data) {
+    func receiveRequest(on connection: NWConnection, buffer: Data) {
         connection.receive(
             minimumIncompleteLength: 1,
             maximumLength: 8 * 1_024
@@ -189,6 +191,9 @@ final class LocalMediaServer {
     }
 
     private func respond(to request: Request, on connection: NWConnection) {
+        if yt6Stream(request, on: connection) {
+            return
+        }
         let started = CACurrentMediaTime()
         handler(request.path) { body, contentType in
             // Only the interesting ones: a miss, or a wait long enough that

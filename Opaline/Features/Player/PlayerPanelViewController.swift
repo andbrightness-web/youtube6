@@ -54,6 +54,9 @@ final class PlayerPanelViewController: UIViewController, UIGestureRecognizerDele
         super.viewDidLayoutSubviews()
         updateNavWrapperTop()
         view.transform = isExpanded ? .identity : collapsedTransform()
+        if YT6.isEnabled {
+            view.alpha = isExpanded ? 1 : 0
+        }
     }
 
     func expand(animated: Bool) {
@@ -66,6 +69,7 @@ final class PlayerPanelViewController: UIViewController, UIGestureRecognizerDele
         refreshMiniBar()
         let animations = {
             self.view.transform = .identity
+            self.view.alpha = 1
             self.miniBar?.alpha = 0
             self.miniBar?.transform = .identity
         }
@@ -96,6 +100,11 @@ final class PlayerPanelViewController: UIViewController, UIGestureRecognizerDele
         miniBar?.isHidden = false
         let animations = {
             self.view.transform = self.collapsedTransform()
+            if YT6.isEnabled {
+                // The page fades as it goes (`alphaForExpansionCoefficient:`)
+                // instead of sliding its status-bar backdrop down the screen.
+                self.view.alpha = 0
+            }
             self.miniBar?.alpha = 1
         }
         if animated {

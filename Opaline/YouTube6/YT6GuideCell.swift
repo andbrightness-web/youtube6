@@ -44,6 +44,8 @@ final class YT6GuideCell: UITableViewCell {
         /// A channel's avatar instead of a 2.0.0 icon, under
         /// `thumbnail_mask_guide` (`guideUserThumbnailMaskWithSelected:`).
         var avatarURL: String?
+        /// The signed-in user's photo, already loaded.
+        var photo: UIImage?
     }
 
     static let reuseID = "YT6GuideCell"
@@ -55,6 +57,9 @@ final class YT6GuideCell: UITableViewCell {
     private let title = UILabel()
     private let disclosureButton = UIButton(type: .custom)
     private var isEntrySelected = false
+    /// The avatar on screen: a reload with the same one keeps it instead of
+    /// blanking and fetching it again (REQUEST698).
+    private var shownAvatar: URL?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -80,15 +85,7 @@ final class YT6GuideCell: UITableViewCell {
     func configure(_ content: Content) {
         isEntrySelected = content.selected
         title.text = content.title
-        icon.cancel()
-        if let avatar = content.avatarURL.flatMap({ URL(string: $0) }) {
-            icon.image = nil
-            icon.contentMode = .scaleAspectFill
-            icon.setImage(url: avatar)
-            let mask = content.selected ? "thumbnail_mask_guide_selected" : "thumbnail_mask_guide"
-            avatarMask.image = YT6.stretchableImage(mask)
-            avatarMask.isHidden = false
-        } else {
+        if !showAvatar(content) {
             icon.contentMode = .center
             let suffix = content.selected ? "_selected" : ""
             icon.image = content.icon.flatMap { YT6.image($0 + suffix) }
@@ -99,6 +96,34 @@ final class YT6GuideCell: UITableViewCell {
         onDisclosure = nil
         updatePressedAppearance()
         setNeedsLayout()
+    }
+
+    /// The user's photo or a channel avatar under the guide mask; false when
+    /// the row has neither and takes a 2.0.0 icon.
+    private func showAvatar(_ content: Content) -> Bool {
+        let avatar = content.avatarURL.flatMap { URL(string: $0) }
+        if avatar != shownAvatar {
+            icon.cancel()
+            shownAvatar = nil
+        }
+        let mask = content.selected ? "thumbnail_mask_guide_selected" : "thumbnail_mask_guide"
+        avatarMask.image = YT6.stretchableImage(mask)
+        if let photo = content.photo {
+            icon.contentMode = .scaleAspectFill
+            icon.image = photo
+            avatarMask.isHidden = false
+        } else if let avatar {
+            icon.contentMode = .scaleAspectFill
+            if shownAvatar == nil {
+                icon.image = nil
+                icon.setImage(url: avatar)
+                shownAvatar = avatar
+            }
+            avatarMask.isHidden = false
+        } else {
+            return false
+        }
+        return true
     }
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {

@@ -721,6 +721,19 @@ extension WatchViewController {
         updateLayoutForSize()
     }
 
+    /// A new video: the previous one's paused frame and play button stayed
+    /// up for the whole load and read as «paused, tap play» (REQUEST698).
+    /// The player view goes until the new item is attached; the page's own
+    /// spinner shows meanwhile.
+    func yt6ShowLoading() {
+        guard let playerView = videoPlayerView else {
+            return
+        }
+        resetPlaybackSurfaces()
+        playerView.isHidden = true
+        playerSpinner.startAnimating()
+    }
+
     /// `overlay_watch_collapse` on the player: back to the collapsed player.
     @objc
     func yt6CollapseTapped() {

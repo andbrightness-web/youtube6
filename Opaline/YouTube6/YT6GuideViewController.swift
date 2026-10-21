@@ -186,7 +186,8 @@ final class YT6GuideViewController: UITableViewController {
         cell.configure(
             YT6GuideCell.Content(
                 title: signedIn ? loggedIn : YT6.string("guide.account", fallback: "Sign In"),
-                disclosure: signedIn ? (accountDisclosed ? "collapse_guide" : "expand_guide") : nil
+                disclosure: signedIn ? (accountDisclosed ? "collapse_guide" : "expand_guide") : nil,
+                photo: signedIn ? UserProfileStore.shared.avatarImage : nil
             )
         )
         cell.onDisclosure = { [weak self] in
