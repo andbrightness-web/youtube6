@@ -74,7 +74,7 @@ enum DownloadMenu {
         from presenter: UIViewController
     ) -> PlayerMenuItem {
         PlayerMenuItem(
-            title: "downloads.delete".localized,
+            title: YT6.isEnabled ? YT6.deleteDownloadTitle : "downloads.delete".localized,
             isDestructive: true,
             iconName: "icon_minus_circle"
         ) {
@@ -85,7 +85,7 @@ enum DownloadMenu {
     /// Cancels whichever job this video is — running or still waiting.
     private static func cancelItem(_ videoId: String) -> PlayerMenuItem {
         PlayerMenuItem(
-            title: "downloads.cancel".localized,
+            title: YT6.isEnabled ? YT6.cancelDownloadTitle : "downloads.cancel".localized,
             isDestructive: true,
             iconName: "icon_minus_circle"
         ) {

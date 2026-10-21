@@ -29,6 +29,8 @@ final class YT6VideoRow: UIView {
     private let uploader = UILabel()
     private let meta = UILabel()
     private let menu = UIButton(type: .custom)
+    let download = YT6DownloadBar()
+    private var plainMeta: String?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -46,11 +48,19 @@ final class YT6VideoRow: UIView {
         menu.setTitleColor(YT6.guideTitle, for: .normal)
         menu.addTarget(self, action: #selector(tapMenu), for: .touchUpInside)
         addSubview(menu)
+        setUpDownload()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    private func setUpDownload() {
+        thumbnail.addSubview(download)
+        download.onText = { [weak self] text in
+            self?.meta.text = text ?? self?.plainMeta
+        }
     }
 
     override func layoutSubviews() {
@@ -78,11 +88,23 @@ final class YT6VideoRow: UIView {
             line.frame.origin = CGPoint(x: left, y: y)
             y += line.frame.height
         }
+        layoutThumbnailBadges()
+    }
+
+    /// The duration plate and the download line inside the thumbnail.
+    private func layoutThumbnailBadges() {
         duration.sizeToFit()
         duration.frame.size.width += 8
         duration.frame.origin = CGPoint(
             x: thumbnail.bounds.width - duration.frame.width - 4,
             y: thumbnail.bounds.height - duration.frame.height - 4
+        )
+        let line = YT6DownloadBar.height
+        download.frame = CGRect(
+            x: 0,
+            y: thumbnail.bounds.height - line,
+            width: thumbnail.bounds.width,
+            height: line
         )
     }
 
@@ -104,11 +126,15 @@ final class YT6VideoRow: UIView {
             thumbnail.setImage(url: url, videoId: video.isShort ? nil : video.id)
         }
         menu.isHidden = false
+        plainMeta = meta.text
+        download.follow(video.id)
         setNeedsLayout()
     }
 
     func configureSkeleton() {
         [title, uploader, meta, duration].forEach { $0.text = nil }
+        plainMeta = nil
+        download.follow(nil)
         duration.isHidden = true
         menu.isHidden = true
         thumbnail.cancel()
@@ -170,6 +196,12 @@ final class YT6FeedCell: UICollectionViewCell {
 /// `SubscriptionVideoCell`.
 final class YT6ListVideoCell: SubscriptionVideoCell {
     private let row = YT6VideoRow()
+
+    /// The Downloads list shows a saved video's size in the grey line.
+    var showsDownloadSize: Bool {
+        get { row.download.showsSize }
+        set { row.download.showsSize = newValue }
+    }
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)

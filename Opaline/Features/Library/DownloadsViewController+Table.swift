@@ -21,6 +21,7 @@ extension DownloadsViewController: UITableViewDataSource, UITableViewDelegate {
             return UITableViewCell()
         }
         let video = videos[indexPath.row]
+        (cell as? YT6ListVideoCell)?.showsDownloadSize = true
         cell.configure(with: video)
         cell.onChannelTap = { [weak self] in
             self?.openChannel(for: video)
@@ -45,7 +46,10 @@ extension DownloadsViewController: UITableViewDataSource, UITableViewDelegate {
         _ tableView: UITableView,
         heightForRowAt indexPath: IndexPath
     ) -> CGFloat {
-        SubscriptionVideoCell.rowHeight(
+        if YT6.isEnabled {
+            return YT6VideoRow.height
+        }
+        return SubscriptionVideoCell.rowHeight(
             forWidth: tableView.bounds.width,
             title: videos[indexPath.row].title
         )

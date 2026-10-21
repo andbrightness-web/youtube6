@@ -65,7 +65,12 @@ final class YT6GuideViewController: UITableViewController {
         tableView.rowHeight = YT6.guideRowHeight
         tableView.register(YT6GuideCell.self, forCellReuseIdentifier: YT6GuideCell.reuseID)
         tableView.contentInsetAdjustmentBehavior = .always
-        for name in [UserProfileStore.didUpdateNotification, .userDidSignOut] {
+        let names = [
+            UserProfileStore.didUpdateNotification,
+            .userDidSignOut,
+            DownloadStore.didChangeNotification
+        ]
+        for name in names {
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(reload),
@@ -155,7 +160,8 @@ final class YT6GuideViewController: UITableViewController {
                 YT6GuideCell.Content(
                     title: section.title,
                     icon: section.icon,
-                    selected: section == selectedSection && selectedChannelId == nil
+                    selected: section == selectedSection && selectedChannelId == nil,
+                    unread: section == .downloads ? YT6.activeDownloads : 0
                 )
             )
         case .channel(let index):

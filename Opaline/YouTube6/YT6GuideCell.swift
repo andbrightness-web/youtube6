@@ -46,6 +46,8 @@ final class YT6GuideCell: UITableViewCell {
         var avatarURL: String?
         /// The signed-in user's photo, already loaded.
         var photo: UIImage?
+        /// `-[YTBaseGuideCell setUnreadCount:]` @5c4a8 («99+» above 99).
+        var unread = 0
     }
 
     static let reuseID = "YT6GuideCell"
@@ -56,6 +58,10 @@ final class YT6GuideCell: UITableViewCell {
     private let avatarMask = UIImageView()
     private let title = UILabel()
     private let disclosureButton = UIButton(type: .custom)
+    /// `_unreadCountLabel`: `smallLightFont`, `cellGuideUnreadCountColor`
+    /// (`initWithReuseIdentifier:` @5bd40), right-aligned 5 pt in
+    /// (`rightAlignedChildrenOffset` @5c0de).
+    private let countLabel = UILabel()
     private var isEntrySelected = false
     /// The avatar on screen: a reload with the same one keeps it instead of
     /// blanking and fetching it again (REQUEST698).
@@ -70,6 +76,11 @@ final class YT6GuideCell: UITableViewCell {
         icon.clipsToBounds = true
         contentView.addSubview(icon)
         contentView.addSubview(avatarMask)
+        countLabel.font = YT6.smallLightFont
+        countLabel.textColor = YT6.guideUnreadCount
+        countLabel.textAlignment = .right
+        countLabel.isHidden = true
+        contentView.addSubview(countLabel)
         title.font = YT6.xLargeLightFont
         title.backgroundColor = .clear
         contentView.addSubview(title)
@@ -91,6 +102,8 @@ final class YT6GuideCell: UITableViewCell {
             icon.image = content.icon.flatMap { YT6.image($0 + suffix) }
             avatarMask.isHidden = true
         }
+        countLabel.text = content.unread > 99 ? "99+" : "\(content.unread)"
+        countLabel.isHidden = content.unread <= 0
         disclosureButton.setImage(content.disclosure.flatMap(YT6.image), for: .normal)
         disclosureButton.isHidden = content.disclosure == nil
         onDisclosure = nil
@@ -161,5 +174,7 @@ final class YT6GuideCell: UITableViewCell {
         disclosureButton.frame = CGRect(
             x: YT6.guideWidth - 44, y: (bounds.height - 44) / 2, width: 44, height: 44
         )
+        countLabel.frame = CGRect(x: title.frame.maxX, y: 0, width: 0, height: bounds.height)
+        countLabel.frame.size.width = YT6.guideWidth - 5 - countLabel.frame.minX
     }
 }

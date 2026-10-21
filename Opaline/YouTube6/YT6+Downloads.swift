@@ -10,6 +10,23 @@ extension YT6 {
         return russian ? "Сохранить на iPod" : "Save to iPod"
     }
 
+    /// While a download runs: «Cancel download (45 %)» (REQUEST714).
+    static var cancelDownloadTitle: String {
+        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let percent = Int((VideoDownloader.shared.progress * 100).rounded())
+        return russian ? "Отменить загрузку (\(percent) %)" : "Cancel download (\(percent) %)"
+    }
+
+    static var deleteDownloadTitle: String {
+        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        return russian ? "Удалить с iPod" : "Delete from iPod"
+    }
+
+    /// Downloads saving or waiting, for the guide row's count.
+    static var activeDownloads: Int {
+        VideoDownloader.shared.isDownloading ? VideoDownloader.shared.queuedCount + 1 : 0
+    }
+
     /// The guide row's icon: 2.0.0 has no download glyph. APPROXIMATION:
     /// `uploads_guide` (arrow up over a bar, 35 pt) with the arrow turned
     /// down — the arrow fills 10–20 pt of its height, the bar stays.
