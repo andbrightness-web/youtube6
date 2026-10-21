@@ -264,6 +264,7 @@ final class VideoPlayerView: UIView {
     /// rendered media on older devices, so subtitles keyed to `currentTime`
     /// lag until a seek realigns the timebase (#14).
     let clockResync = ClockResyncState()
+    let yt6PendingSeek = YT6PendingSeek() // youtube6: the bar holds a seek's target
 
     override var safeAreaInsets: UIEdgeInsets {
         if isFullscreen && !transform.isIdentity {

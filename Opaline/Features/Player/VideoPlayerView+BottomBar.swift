@@ -44,11 +44,7 @@ extension VideoPlayerView {
                 seconds: progress * self.duration,
                 preferredTimescale: 600
             )
-            currentPlayer.seek(
-                to: target,
-                toleranceBefore: .zero,
-                toleranceAfter: .zero
-            )
+            self.yt6Seek(currentPlayer, to: target)
             // Scrubbing back from the end screen while paused leaves the
             // rate at 0, so the observer would not clear it.
             self.isAtEnd = false

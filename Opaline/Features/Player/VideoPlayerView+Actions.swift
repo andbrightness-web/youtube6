@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 import AVFoundation
 import AVKit
 import UIKit
@@ -237,11 +236,7 @@ extension VideoPlayerView {
         let proposed = direction > 0 ? base + offset : base - offset
         let destination = clampedSeekTime(proposed)
         seekBurst.target = destination
-        player.seek(
-            to: destination,
-            toleranceBefore: .zero,
-            toleranceAfter: .zero
-        )
+        yt6Seek(player, to: destination)
         showSeekHUD(totalOffset: seekBurst.accumulated * Double(direction))
         scheduleAutoHide()
     }

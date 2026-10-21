@@ -271,11 +271,11 @@ extension VideoPlayerView {
             // This string changes once a second; assigning it every tick
             // invalidates the label's intrinsic size and relays out the
             // whole bottom bar.
-            let stamp = formatTime(secs)
+            let stamp = formatTime(yt6BarSeconds(secs))
             if currentTimeLabel.text != stamp {
                 currentTimeLabel.text = stamp
             }
-            seekBar.setProgress(secs / duration)
+            seekBar.setProgress(yt6BarSeconds(secs) / duration)
             updateBuffer(at: time)
         }
         onTimeUpdate?(secs)

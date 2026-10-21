@@ -23,6 +23,14 @@ final class YT6Search: NSObject {
         searchView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     }
 
+    private static func root(of viewController: UIViewController) -> UIViewController {
+        var root = viewController
+        while let parent = root.parent {
+            root = parent
+        }
+        return root
+    }
+
     /// The title bar's search button (`didPressSearchButton:` @2ce64).
     func show(from viewController: UIViewController) {
         guard let nav = viewController.navigationController else {
@@ -32,11 +40,17 @@ final class YT6Search: NSObject {
         let top = nav.isNavigationBarHidden
             ? nav.view.safeAreaInsets.top
             : nav.navigationBar.frame.minY
-        searchView.frame = CGRect(
+        let area = CGRect(
             x: 0, y: top, width: nav.view.bounds.width, height: nav.view.bounds.height - top
         )
-        nav.view.addSubview(searchView)
-        nav.view.bringSubviewToFront(searchView)
+        // APPROXIMATION of the z-order: 2.0.0's search view is over the
+        // content view, the watch page included. The watch page here sits
+        // over the navigation in the root container, so the search view
+        // goes there, above it.
+        let container: UIView = Self.root(of: nav).view
+        searchView.frame = nav.view.convert(area, to: container)
+        container.addSubview(searchView)
+        container.bringSubviewToFront(searchView)
         searchView.gainFocus()
         // `searchViewDidGainFocus` @146b8 refreshes the list.
         updateSuggestions()
@@ -81,6 +95,13 @@ final class YT6Search: NSObject {
             return
         }
         results.yt6ShowResults(for: query)
+        // `-[YTNavigation_iPhone pushViewController:fromView:]` @22b74/22ca4
+        // starts with `collapseWatchIfExpanded`: an expanded video goes to
+        // the collapsed player, still playing (REQUEST720).
+        Self.root(of: nav).children
+            .compactMap { $0 as? PlayerPanelViewController }
+            .first { $0.isExpanded }?
+            .collapse(animated: true)
         nav.pushViewController(results, animated: true)
     }
 }
