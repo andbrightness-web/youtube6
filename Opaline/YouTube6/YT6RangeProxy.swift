@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// Serves the byte-range stream's segments from `127.0.0.1` (REQUEST687).
 ///
@@ -9,7 +10,19 @@ import Foundation
 /// and each is fetched over `YT6.mediaSession`, i.e. the one warm connection
 /// the index requests already opened. If the local server is not ready by
 /// the time the playlists are built, upstream's direct playlists are used.
+///
+/// One download per segment however often AVPlayer asks for it; requests
+/// left behind by a seek and every request of the previous video are
+/// cancelled (REQUEST695: one segment was fetched four times, and the last
+/// video's tails kept loading 12–18 s into the next one).
 final class YT6RangeProxy {
+    private typealias Reply = (Data?, String) -> Void
+
+    private struct Download {
+        let task: URLSessionDataTask
+        var waiters: [Reply]
+    }
+
     private struct Track {
         let url: URL
         let initBytes: Int64
@@ -39,6 +52,9 @@ final class YT6RangeProxy {
     }
 
     private static var pending: [URL: YT6RangeProxy] = [:]
+    private static let live = NSHashTable<YT6RangeProxy>.weakObjects()
+    /// A seek: a request this many segments away from one still loading.
+    private static let seekDistance = 2
     private static let lock = NSLock()
     private static var retainKey: UInt8 = 0
 
@@ -49,6 +65,7 @@ final class YT6RangeProxy {
     private var tracks: [String: Track] = [:]
     /// AVPlayer probes a segment (HEAD, then GET) — keep the last few.
     private var recent: [(path: String, data: Data)] = []
+    private var downloads: [String: Download] = [:]
 
     private var base: URL? {
         get {
@@ -91,8 +108,11 @@ final class YT6RangeProxy {
             proxy?.base = base
         }
         lock.lock()
+        let previous = live.allObjects
+        live.add(proxy)
         pending[input.videoURL] = proxy
         lock.unlock()
+        previous.forEach { $0.cancelAll() }
     }
 
     /// Registers proxied media playlists on `loader` and keeps the proxy
@@ -125,7 +145,7 @@ final class YT6RangeProxy {
         return true
     }
 
-    private func serve(_ path: String, completion: @escaping (Data?, String) -> Void) {
+    private func serve(_ path: String, completion: @escaping Reply) {
         let parts = path.split(separator: "/").map(String.init)
         guard parts.count == 2, let track = tracks[parts[0]] else {
             completion(nil, "")
@@ -139,18 +159,12 @@ final class YT6RangeProxy {
             completion(nil, "")
             return
         }
-        var request = URLRequest(url: track.url)
-        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
-        request.setValue("bytes=\(range.0)-\(range.1)", forHTTPHeaderField: HTTPHeader.range)
-        YT6.mediaSession.dataTask(with: request) { [weak self] data, response, _ in
-            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-            let body = code == 206 || code == 200 ? data : nil
-            if let body {
-                self?.remember(path, body)
-            }
-            completion(body, track.mime)
+        guard joinDownload(path, completion) == false else {
+            AppLog.hls("[Speed] seg \(path) joined")
+            return
         }
-        .resume()
+        cancelSkipped(track: parts[0], index: Int(parts[1]))
+        download(path, range: range, track: track, completion: completion)
     }
 
     private func cached(_ path: String) -> Data? {
@@ -171,6 +185,92 @@ final class YT6RangeProxy {
     }
 
     deinit {
+        downloads.values.forEach { $0.task.cancel() }
         server.stop()
+    }
+}
+
+// MARK: - Downloads
+
+extension YT6RangeProxy {
+    private func download(
+        _ path: String,
+        range: (Int64, Int64),
+        track: Track,
+        completion: @escaping Reply
+    ) {
+        var request = URLRequest(url: track.url)
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        request.setValue("bytes=\(range.0)-\(range.1)", forHTTPHeaderField: HTTPHeader.range)
+        let started = CACurrentMediaTime()
+        let session = YT6.mediaSession(for: track.url)
+        let task = session.dataTask(with: request) { [weak self] data, response, _ in
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let body = code == 206 || code == 200 ? data : nil
+            let ms = Int((CACurrentMediaTime() - started) * 1_000)
+            let kb = (data?.count ?? 0) / 1_024
+            AppLog.hls("[Speed] seg \(path) \(kb) KB \(ms) ms code \(code)")
+            self?.finish(path, body, mime: track.mime)
+        }
+        state.lock()
+        downloads[path] = Download(task: task, waiters: [completion])
+        state.unlock()
+        task.resume()
+    }
+
+    /// Waits on the download already fetching `path`, if there is one.
+    private func joinDownload(_ path: String, _ completion: @escaping Reply) -> Bool {
+        state.lock()
+        defer {
+            state.unlock()
+        }
+        guard var download = downloads[path] else {
+            return false
+        }
+        download.waiters.append(completion)
+        downloads[path] = download
+        return true
+    }
+
+    private func finish(_ path: String, _ body: Data?, mime: String) {
+        state.lock()
+        let waiters = downloads.removeValue(forKey: path)?.waiters ?? []
+        state.unlock()
+        if let body {
+            remember(path, body)
+        }
+        waiters.forEach { $0(body, mime) }
+    }
+
+    /// After a seek AVPlayer no longer wants what it asked for before it on
+    /// the same track; those downloads only hold the connection.
+    private func cancelSkipped(track: String, index: Int?) {
+        guard let index else {
+            return
+        }
+        state.lock()
+        let stale = downloads.filter { path, _ in
+            let parts = path.split(separator: "/")
+            guard parts.count == 2, parts[0] == track, let other = Int(parts[1]) else {
+                return false
+            }
+            return abs(other - index) > Self.seekDistance
+        }
+        state.unlock()
+        for (path, download) in stale {
+            AppLog.hls("[Speed] seg \(path) cancelled (seek to \(track)/\(index))")
+            download.task.cancel()
+        }
+    }
+
+    /// Every download still running — a newer video has started.
+    private func cancelAll() {
+        state.lock()
+        let tasks = downloads.values.map(\.task)
+        state.unlock()
+        if !tasks.isEmpty {
+            AppLog.hls("[Speed] cancelled \(tasks.count) downloads of the previous video")
+        }
+        tasks.forEach { $0.cancel() }
     }
 }

@@ -65,7 +65,7 @@ extension HLSPlaybackBuilder {
             "bytes=\(request.start)-\(request.end)",
             forHTTPHeaderField: HTTPHeader.range
         )
-        let task = YT6.mediaSession.dataTask(
+        let task = YT6.mediaSession(for: request.url).dataTask(
             with: urlReq
         ) { _, response, error in
             if let error {
@@ -89,7 +89,8 @@ extension HLSPlaybackBuilder {
         }
         let rv = "bytes=\(request.start)-\(request.end)"
         urlReq.setValue(rv, forHTTPHeaderField: HTTPHeader.range)
-        let task = YT6.mediaSession.dataTask(with: urlReq) { data, response, error in
+        let session = YT6.mediaSession(for: request.url)
+        let task = session.dataTask(with: urlReq) { data, response, error in
             if let error {
                 AppLog.hls("range fetch failed: \(error.localizedDescription)")
                 completion(nil)

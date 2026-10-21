@@ -33,17 +33,16 @@ final class YT6NetMetrics: NSObject, URLSessionTaskDelegate {
 
 extension YT6 {
     /// Session for googlevideo byte-range requests: `URLSession.shared`
-    /// upstream; here the same configuration with timing logged.
-    static let mediaSession: URLSession = isEnabled
-        ? URLSession(
-            configuration: mediaConfiguration,
-            delegate: YT6NetMetrics(),
-            delegateQueue: nil
-        )
-        : .shared
+    /// upstream; here the same configuration with timing logged. Video and
+    /// audio each get one: on a shared single connection the 161 KB audio
+    /// segment waited behind multi-megabyte video ones, up to 13.4 s
+    /// (REQUEST695, research/YOUTUBE6-SPEED-2026-10-21.md).
+    static let mediaSession: URLSession = makeMediaSession()
+    static let audioMediaSession: URLSession = makeMediaSession()
 
-    /// One connection per googlevideo host: the identity probe and both
-    /// index requests then share a single warm connection. Each new
+    /// One connection per googlevideo host and session: the probe and the
+    /// audio index share the audio one, the video index and segments the
+    /// video one. Each new
     /// connection through the device's proxy risked a ~5.3 s stall
     /// (REQUEST687, log 22:42–22:43: 6–9 new connections per video).
     private static var mediaConfiguration: URLSessionConfiguration {
@@ -51,4 +50,21 @@ extension YT6 {
         config.httpMaximumConnectionsPerHost = 1
         return config
     }
+
+    /// The session for one googlevideo URL — audio streams say
+    /// `mime=audio%2F…` in their query.
+    static func mediaSession(for url: URL) -> URLSession {
+        url.query?.contains("mime=audio") == true ? audioMediaSession : mediaSession
+    }
+
+    private static func makeMediaSession() -> URLSession {
+        isEnabled
+            ? URLSession(
+                configuration: mediaConfiguration,
+                delegate: YT6NetMetrics(),
+                delegateQueue: nil
+            )
+            : .shared
+    }
+
 }

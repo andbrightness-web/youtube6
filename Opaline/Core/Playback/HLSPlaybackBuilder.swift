@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AVFoundation
 
 /// Builds HLS playlists from DASH adaptive format info.
@@ -35,6 +36,10 @@ enum HLSPlaybackBuilder {
     ) {
         let startTime = CACurrentMediaTime()
         YT6RangeProxy.prepare(for: input)
+        if YT6.isEnabled {
+            yt6BuildInParallel(input: input, startTime: startTime, completion: completion)
+            return
+        }
         probeIdentity(input: input) { healthy in
             guard healthy else {
                 completion(nil)
@@ -56,6 +61,41 @@ enum HLSPlaybackBuilder {
 // MARK: - Private Helpers
 
 private extension HLSPlaybackBuilder {
+    /// youtube6: the identity probe and the index requests at once. Video
+    /// and audio ride separate connections (`YT6.mediaSession(for:)`), so the
+    /// probe no longer holds the video index back (REQUEST695).
+    static func yt6BuildInParallel(
+        input: BuildInput,
+        startTime: CFTimeInterval,
+        completion: @escaping (Result?) -> Void
+    ) {
+        let group = DispatchGroup()
+        var healthy = false
+        var indexes: (video: Data?, audio: Data?) = (nil, nil)
+        group.enter()
+        probeIdentity(input: input) { ok in
+            healthy = ok
+            group.leave()
+        }
+        group.enter()
+        fetchSidxPair(input: input) { video, audio in
+            indexes = (video, audio)
+            group.leave()
+        }
+        group.notify(queue: .global(qos: .userInitiated)) {
+            guard healthy else {
+                completion(nil)
+                return
+            }
+            completion(processSidxData(
+                input: input,
+                videoData: indexes.video,
+                audioData: indexes.audio,
+                startTime: startTime
+            ))
+        }
+    }
+
     static func fetchSidxPair(
         input: BuildInput,
         completion: @escaping (Data?, Data?) -> Void

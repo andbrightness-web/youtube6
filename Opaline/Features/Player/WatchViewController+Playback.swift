@@ -6,6 +6,9 @@ import UIKit
 
 extension WatchViewController {
     func startPlayback() {
+        if YT6.isEnabled {
+            YT6Speed.shared.markTap(initialVideo.id)
+        }
         playbackFacade.watchtimeTracker.timeProvider = { [weak self] in
             self?.videoPlayerView?.player?.currentTime().seconds ?? 0
         }
@@ -50,6 +53,9 @@ extension WatchViewController {
         configureSponsorBlock(on: pv)
         playerContainer.bringSubviewToFront(pv)
         pv.attach(player: player)
+        if YT6.isEnabled {
+            YT6Speed.shared.watch(player: player, layer: pv.playerLayer)
+        }
         // Start as soon as the first frames are decodable instead of
         // waiting for the stall-minimizing buffer to fill.
         player.playImmediately(atRate: pv.playbackSpeed)
