@@ -7,9 +7,10 @@ import UIKit
 /// working. Under the 320×180 player: the 2 pt `player_details_shadow`, then
 /// cards on #EDEDED — video info (title, views, like/dislike/flag, the
 /// description on tap), channel, related rows with «ДРУГИЕ ВАРИАНТЫ»,
-/// «КОММЕНТАРИИ · N» — and the 51 pt action bar (`YTVideoActionBarView`:
-/// add to, share) along the bottom of the screen, riding away with the
-/// content while scrolling.
+/// «КОММЕНТАРИИ · N» with its rows (`YT6CommentsView`) — and the 51 pt
+/// action bar (`YTVideoActionBarView`: add to, share) along the bottom of
+/// the screen, riding away with the content while scrolling. A playing
+/// queue adds the playlist panel under the player (`YT6VideoListView`).
 /// Spec with addresses: ipodos27 research/YOUTUBE6-STAGE3-WATCH-2026-10-20.md.
 extension YT6 {
     enum Watch {
@@ -63,7 +64,15 @@ final class YT6WatchChrome: NSObject {
     let commentsArrow = UIImageView(image: YT6.image("card_disclosure_arrow_collapsed"))
     let disclosure = UIImageView()
     let separator = UIImageView(image: YT6.stretchableImage("horizontal_separator"))
-    let flagButton = UIButton(type: .custom)
+    let comments = YT6CommentsView()
+    var commentsExpanded = false
+    var commentsVideoId = ""
+    var commentsState = ""
+    var downloadState = ""
+    let videoList = YT6VideoListView()
+    var videoListExpanded = false
+    var videoListHeight: NSLayoutConstraint?
+    var videoListBottom: NSLayoutConstraint?
     let detailsShadow = UIImageView(image: YT6.stretchableImage("player_details_shadow"))
     let actionBar = UIView()
     let addToButton = UIButton(type: .custom)
@@ -107,6 +116,7 @@ extension WatchViewController {
         channelTopToMeta = nil
         channelTopToDesc = nil
         bottomCommentsConstraint = nil
+        yt6AdoptDownloadButton()
         relatedCollectionView.register(
             YT6FeedCell.self,
             forCellWithReuseIdentifier: YT6FeedCell.reuseId
@@ -115,6 +125,7 @@ extension WatchViewController {
         yt6BuildChannelCard(chrome)
         yt6BuildRelatedAndComments(chrome)
         yt6BuildActionBar(chrome)
+        yt6BuildVideoList(chrome)
         yt6BuildDetailsShadow(chrome)
         yt6ApplyColors()
     }
@@ -131,7 +142,7 @@ extension WatchViewController {
         yt6Add([
             chrome.infoPlate, titleLabel, chrome.disclosure, metaLabel, chrome.separator,
             descriptionLabel, likeButton, likeCountLabel, dislikeButton, dislikeCountLabel,
-            chrome.flagButton
+            downloadButton
         ], to: contentView)
         yt6StyleInfoCard(chrome)
         let bottom = YT6.Watch.infoBottom + YT6.Watch.plateOutset
@@ -160,11 +171,6 @@ extension WatchViewController {
         likeCountLabel.font = YT6.smallLightFont
         dislikeCountLabel.font = YT6.smallLightFont
         descriptionLabel.font = YT6.mediumLightFont
-        chrome.flagButton.setImage(YT6.image("flag"), for: .normal)
-        chrome.flagButton.accessibilityLabel = YT6.string(
-            "video_rating.flag.access",
-            fallback: "Flag"
-        )
         titleLabel.isUserInteractionEnabled = true
         titleLabel.addGestureRecognizer(
             UITapGestureRecognizer(target: self, action: #selector(toggleDescription))
@@ -224,7 +230,8 @@ extension WatchViewController {
     }
 
     /// `YTLikesDislikesView layoutSubviews` @6bbb0: like, its count 4 pt
-    /// after, dislike 16 pt after that, its count; the flag at the right.
+    /// after, dislike 16 pt after that, its count; at the right, where the
+    /// flag was, the download button (REQUEST712).
     private func yt6LikesConstraints(_ chrome: YT6WatchChrome) -> [NSLayoutConstraint] {
         [
             likeButton.topAnchor.constraint(
@@ -244,7 +251,7 @@ extension WatchViewController {
                 equalTo: dislikeButton.trailingAnchor,
                 constant: 4
             ),
-            chrome.flagButton.trailingAnchor.constraint(
+            downloadButton.trailingAnchor.constraint(
                 equalTo: chrome.separator.trailingAnchor,
                 constant: -4
             )
@@ -255,7 +262,7 @@ extension WatchViewController {
     private func yt6LikesRowConstraints(_ chrome: YT6WatchChrome) -> [NSLayoutConstraint] {
         let size = YT6.Watch.likeSize
         let center = likeButton.centerYAnchor
-        let buttons: [UIButton] = [likeButton, dislikeButton, chrome.flagButton]
+        let buttons: [UIButton] = [likeButton, dislikeButton, downloadButton]
         let labels: [UILabel] = [likeCountLabel, dislikeCountLabel]
         return buttons.flatMap {
             [
@@ -307,11 +314,14 @@ extension WatchViewController {
         let button = subscribeButton
         button.layer.cornerRadius = 0
         button.contentEdgeInsets = .zero
-        // APPROXIMATION: the switch's title font is not read yet.
-        button.titleLabel?.font = UIFont(name: "HelveticaNeue-Bold", size: 10)
+        // `YTSubscribeSwitch setSubscribeState:` @40114c: `XSmallLightFont`
+        // (11); `layoutSubviews` @400c06/400c2a: the label 5 pt after the
+        // icon, the pair centered, the label no wider than the rest.
+        button.titleLabel?.font = YT6.xSmallLightFont
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.8
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -2.5, bottom: 0, right: 2.5)
+        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 2.5, bottom: 0, right: -2.5)
         let plate = chrome.channelPlate
         let height = YT6.Watch.channelHeight + YT6.Watch.plateOutset * 2
         NSLayoutConstraint.activate(
@@ -356,7 +366,8 @@ extension WatchViewController {
 
     /// Related rows (`YTVideoCell_iPhone`, 95 pt — `YT6VideoRow` draws its
     /// own card plate), «ДРУГИЕ ВАРИАНТЫ» while more are hidden, then the
-    /// «КОММЕНТАРИИ · N» header card that opens the comments.
+    /// «КОММЕНТАРИИ · N» header card (`YTCardHeaderCell`, the top of its
+    /// section's card) with the comment rows under it.
     private func yt6BuildRelatedAndComments(_ chrome: YT6WatchChrome) {
         yt6StyleButtonCard(chrome.moreCard)
         chrome.moreCard.setTitle(
@@ -365,15 +376,11 @@ extension WatchViewController {
         )
         chrome.moreCard.setTitleColor(YT6.Watch.link, for: .normal)
         chrome.moreCard.addTarget(self, action: #selector(yt6ShowMoreRelated), for: .touchUpInside)
-        yt6StyleButtonCard(chrome.commentsCard)
-        chrome.commentsCard.addTarget(self, action: #selector(expandComments), for: .touchUpInside)
-        chrome.commentsTitle.font = YT6.mediumLightFont
-        // APPROXIMATION: the header cell sets no color, so the label's black.
-        chrome.commentsTitle.textColor = .black
-        yt6Add([chrome.commentsTitle, chrome.commentsArrow], to: chrome.commentsCard)
-        chrome.commentsTitle.isUserInteractionEnabled = false
-        chrome.commentsArrow.isUserInteractionEnabled = false
-        yt6Add([relatedCollectionView, chrome.moreCard, chrome.commentsCard], to: contentView)
+        yt6StyleCommentsHeader(chrome)
+        yt6Add(
+            [relatedCollectionView, chrome.moreCard, chrome.commentsCard, chrome.comments],
+            to: contentView
+        )
         let more = chrome.moreCard.heightAnchor.constraint(equalToConstant: 0)
         chrome.moreHeight = more
         // Upstream moves the related list into the landscape sidebar and back,
@@ -388,6 +395,30 @@ extension WatchViewController {
         NSLayoutConstraint.activate(
             relatedSlot.portrait + [fallback, more] + yt6CommentsConstraints(chrome)
         )
+    }
+
+    /// The header: `grouped_table_card_top` (row 0 of a section of two or
+    /// more), the title, the arrow; a tap toggles the rows under it.
+    private func yt6StyleCommentsHeader(_ chrome: YT6WatchChrome) {
+        yt6StyleButtonCard(chrome.commentsCard)
+        chrome.commentsCard.setBackgroundImage(
+            YT6.stretchableImage("grouped_table_card_top"),
+            for: .normal
+        )
+        chrome.commentsCard.addTarget(
+            self,
+            action: #selector(yt6ToggleComments),
+            for: .touchUpInside
+        )
+        chrome.comments.addRow.onTap = { [weak self] in
+            self?.yt6AddCommentTapped()
+        }
+        chrome.commentsTitle.font = YT6.mediumLightFont
+        // APPROXIMATION: the header cell sets no color, so the label's black.
+        chrome.commentsTitle.textColor = .black
+        yt6Add([chrome.commentsTitle, chrome.commentsArrow], to: chrome.commentsCard)
+        chrome.commentsTitle.isUserInteractionEnabled = false
+        chrome.commentsArrow.isUserInteractionEnabled = false
     }
 
     private func yt6RelatedSlot(_ chrome: YT6WatchChrome) -> [NSLayoutConstraint] {
@@ -430,9 +461,28 @@ extension WatchViewController {
             ),
             card.leadingAnchor.constraint(equalTo: chrome.moreCard.leadingAnchor),
             card.trailingAnchor.constraint(equalTo: chrome.moreCard.trailingAnchor),
-            card.heightAnchor.constraint(equalToConstant: height),
-            card.bottomAnchor.constraint(equalTo: cv.bottomAnchor, constant: -4 + out)
-        ] + yt6CommentsHeaderConstraints(chrome)
+            card.heightAnchor.constraint(equalToConstant: height)
+        ] + yt6CommentRowsConstraints(chrome) + yt6CommentsHeaderConstraints(chrome)
+    }
+
+    /// The rows start where the header's content ends and close the page.
+    private func yt6CommentRowsConstraints(_ chrome: YT6WatchChrome) -> [NSLayoutConstraint] {
+        let rows = chrome.comments
+        let card = chrome.commentsCard
+        let height = rows.heightAnchor.constraint(
+            equalToConstant: YT6AddCommentRow.height + YT6CommentsView.bottomMargin
+        )
+        rows.heightConstraint = height
+        return [
+            rows.topAnchor.constraint(
+                equalTo: card.bottomAnchor,
+                constant: -YT6.Watch.plateOutset
+            ),
+            rows.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            rows.trailingAnchor.constraint(equalTo: card.trailingAnchor),
+            rows.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            height
+        ]
     }
 
     /// The header line 12 pt in, its disclosure arrow 12 pt from the right.
@@ -559,6 +609,21 @@ extension WatchViewController {
 // MARK: - State
 
 extension WatchViewController {
+    /// `YTVideoInfoCell` @7a088: `localizedStringFromDate:` with dateStyle
+    /// Medium. The watch page's `dateText` is an absolute date on most
+    /// videos («3 окт. 2026 г.», «Oct 3, 2026»): read back and printed
+    /// Medium. APPROXIMATION: a relative text («2 days ago») has no date to
+    /// read and stays as upstream formats it; timeStyle none.
+    private static func yt6DescriptionDate(_ text: String) -> String {
+        let hasYear = text.range(of: "(19|20)[0-9]{2}", options: .regularExpression) != nil
+        let range = NSRange(text.startIndex..., in: text)
+        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue)
+        guard hasYear, let date = detector?.firstMatch(in: text, range: range)?.date else {
+            return VideoFormatters.formatRelativeDate(text)
+        }
+        return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
+    }
+
     /// 2.0.0's fixed colors over whatever upstream's theme just painted.
     func yt6ApplyColors() {
         let surfaces: [UIView] = [view, scrollView, contentView, relatedCollectionView]
@@ -597,8 +662,12 @@ extension WatchViewController {
         let isLandscape = view.bounds.width > view.bounds.height
         let gone = chrome.actionBarOffset >= YT6.Watch.actionBarHeight
         chrome.actionBar.isHidden = isLandscape || gone
+        yt6SyncComments()
+        yt6UpdateDownloadButton()
         view.bringSubviewToFront(chrome.actionBar)
+        view.bringSubviewToFront(chrome.videoList)
         view.bringSubviewToFront(chrome.detailsShadow)
+        chrome.detailsShadow.isHidden = chrome.videoListExpanded
         if let sheet = sheetView {
             view.bringSubviewToFront(sheet)
         }
@@ -632,12 +701,10 @@ extension WatchViewController {
             includeTimestamps: true
         )
         let text = NSMutableAttributedString()
-        // APPROXIMATION: 2.0.0 prints the upload date (medium style); the
-        // watch page carries only YouTube's relative text.
         let published = watchPage?.video.publishedAt ?? initialVideo.publishedAt
         if let published, !published.isEmpty {
             text.append(NSAttributedString(
-                string: VideoFormatters.formatRelativeDate(published) + " · ",
+                string: Self.yt6DescriptionDate(published) + " · ",
                 attributes: [.font: YT6.mediumLightFont, .foregroundColor: YT6.Watch.xDark]
             ))
         }
@@ -668,8 +735,8 @@ extension WatchViewController {
         let plate = isSubscribed ? "button_light" : "button_special"
         button.setBackgroundImage(YT6.stretchableImage(plate), for: .normal)
         button.setImage(YT6.image(isSubscribed ? "subscribed" : "subscribe"), for: .normal)
-        // APPROXIMATION: the switch's title colors are not read yet; white on
-        // the red plate, the dark text color on the light one.
+        // @400e32/400e54: `XLightTextColor` (white) on the red plate,
+        // `darkTextColor` (#666) on the light one.
         button.setTitleColor(isSubscribed ? YT6.Watch.dark : .white, for: .normal)
     }
 
