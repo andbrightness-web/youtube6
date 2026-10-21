@@ -111,6 +111,10 @@ extension UIViewController {
     @objc
     func toolbarOpenSettings() {
         Feedback.tap()
+        if YT6.isEnabled {
+            yt6OpenSettings()
+            return
+        }
         let nav = RotatingNavigationController(rootViewController: SettingsViewController())
         nav.modalPresentationStyle = .pageSheet
         if #available(iOS 15, *) {

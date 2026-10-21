@@ -80,3 +80,14 @@ PlayerLibResources.bundle/overlay_previous_fullscreen
 PlayerLibResources.bundle/overlay_previous_fullscreen_disabled
 PlayerLibResources.bundle/overlay_next_fullscreen
 PlayerLibResources.bundle/overlay_next_fullscreen_disabled
+# Settings (2.0.0 YTSettingsCell cards, picker checkmark and Done, top shadow).
+UILibResources.bundle/grouped_table_card_top
+UILibResources.bundle/grouped_table_card_bottom
+UILibResources.bundle/grouped_table_card_top_selected
+UILibResources.bundle/grouped_table_card_middle_selected
+UILibResources.bundle/grouped_table_card_bottom_selected
+UILibResources.bundle/grouped_table_card_selected
+UILibResources.bundle/checkmark
+UILibResources.bundle/checkmark_selected
+UILibResources.bundle/button_blue
+UILibResources.bundle/bar_shadow

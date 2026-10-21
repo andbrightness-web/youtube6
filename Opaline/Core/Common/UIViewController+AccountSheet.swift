@@ -3,7 +3,7 @@ import UIKit
 // MARK: - Account sheet
 
 extension UIViewController {
-    private static func performSignOut() {
+    static func performSignOut() {
         OAuthClient.shared.signOut()
         UserProfileStore.shared.clear()
         AppCache.shared.clearHomeFeed()
