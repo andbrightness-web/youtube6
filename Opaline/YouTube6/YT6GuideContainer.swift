@@ -61,11 +61,14 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
     private func decorateSelectedSection() {
         DispatchQueue.main.async { [weak self] in
             guard let root = (self?.tabs.selectedViewController as? UINavigationController)?
-                .viewControllers.first,
-                root.isViewLoaded
+                .viewControllers.first
             else {
                 return
             }
+            // A row opened for the first time has not loaded its screen yet;
+            // skipping it left «My Subscriptions» with upstream's dark
+            // refresh area and spinner (REQUEST700).
+            root.loadViewIfNeeded()
             YT6PullRefresh.attach(under: root.view)
         }
     }

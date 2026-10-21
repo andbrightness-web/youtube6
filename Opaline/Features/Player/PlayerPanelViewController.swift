@@ -56,6 +56,7 @@ final class PlayerPanelViewController: UIViewController, UIGestureRecognizerDele
         view.transform = isExpanded ? .identity : collapsedTransform()
         if YT6.isEnabled {
             view.alpha = isExpanded ? 1 : 0
+            yt6LogLayout()
         }
     }
 

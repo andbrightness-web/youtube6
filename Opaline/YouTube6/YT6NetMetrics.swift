@@ -31,6 +31,55 @@ final class YT6NetMetrics: NSObject, URLSessionTaskDelegate {
     }
 }
 
+/// googlevideo answers every request to a stream's own host with a redirect
+/// to the server that holds it, and the first host drops the connection:
+/// each segment paid a fresh connection through the device's proxy, some
+/// of them the ~5 s stall (REQUEST700, log 11:27:58: connect 4243 ms, then
+/// the redirected transaction on a warm one). The final address is kept
+/// per stream and used from then on; a failure there forgets it.
+extension YT6NetMetrics {
+    private static var redirects: [URL: URL] = [:]
+    private static let redirectLock = NSLock()
+
+    /// Where to send a request for `url`: its last redirect, or itself.
+    static func resolved(_ url: URL) -> URL {
+        redirectLock.lock()
+        defer {
+            redirectLock.unlock()
+        }
+        return redirects[url] ?? url
+    }
+
+    static func forget(_ url: URL) {
+        redirectLock.lock()
+        redirects.removeValue(forKey: url)
+        redirectLock.unlock()
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        if let from = task.originalRequest?.url, let to = request.url {
+            Self.redirectLock.lock()
+            // A resolved address can redirect again: update the stream it
+            // stands for, not just itself.
+            let origin = Self.redirects.first { $0.value == from }?.key ?? from
+            let known = Self.redirects[origin] != nil
+            Self.redirects[origin] = to
+            Self.redirectLock.unlock()
+            if !known {
+                AppLog.hls("[Speed] redirect \(from.host ?? "?") → \(to.host ?? "?")")
+            }
+        }
+        completionHandler(request)
+    }
+}
+
 /// Bytes of streamed segments (`YT6SegmentStream`) as they arrive. Tasks
 /// made with a completion handler never reach these.
 extension YT6NetMetrics: URLSessionDataDelegate {
@@ -80,6 +129,12 @@ extension YT6 {
     /// brings is what streaming and seek cancelling now cut down.
     static func mediaSession(for _: URL) -> URLSession {
         mediaSession
+    }
+
+    /// The address to request a googlevideo stream at (see
+    /// `YT6NetMetrics.resolved`); upstream asks the stream's own URL.
+    static func mediaURL(for url: URL) -> URL {
+        isEnabled ? YT6NetMetrics.resolved(url) : url
     }
 
     private static func makeMediaSession() -> URLSession {

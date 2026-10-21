@@ -215,7 +215,7 @@ extension YT6RangeProxy {
     }
 
     private func start(_ stream: YT6SegmentStream, path: String, range: (Int64, Int64), url: URL) {
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: YT6.mediaURL(for: url))
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         request.setValue("bytes=\(range.0)-\(range.1)", forHTTPHeaderField: HTTPHeader.range)
         let started = CACurrentMediaTime()
@@ -232,6 +232,9 @@ extension YT6RangeProxy {
                 let code = stream?.statusCode ?? 0
                 let first = firstByte.map { "\($0)" } ?? "-"
                 AppLog.hls("[Speed] seg \(path) \(kb) KB first \(first) all \(ms) ms code \(code)")
+                if code >= 400 {
+                    YT6NetMetrics.forget(url)
+                }
                 self?.finish(path, body)
             }
         )

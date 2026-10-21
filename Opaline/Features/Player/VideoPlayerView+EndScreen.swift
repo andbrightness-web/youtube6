@@ -37,7 +37,8 @@ extension VideoPlayerView {
     }
 
     func setCenter(hidden: Bool) {
-        playPauseButton.isHidden = hidden
+        // youtube6: play sits in the 2.0.0 bar, which keeps it while loading.
+        playPauseButton.isHidden = hidden && !YT6.isEnabled
         rewindButton.isHidden = hidden
         forwardButton.isHidden = hidden
     }

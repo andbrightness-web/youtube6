@@ -56,7 +56,7 @@ extension HLSPlaybackBuilder {
         of request: RangeRequest,
         completion: @escaping (Int) -> Void
     ) {
-        var urlReq = URLRequest(url: request.url)
+        var urlReq = URLRequest(url: YT6.mediaURL(for: request.url))
         urlReq.httpMethod = "HEAD"
         for (key, value) in request.headers {
             urlReq.setValue(value, forHTTPHeaderField: key)
@@ -83,7 +83,7 @@ extension HLSPlaybackBuilder {
         request: RangeRequest,
         completion: @escaping (Data?) -> Void
     ) {
-        var urlReq = URLRequest(url: request.url)
+        var urlReq = URLRequest(url: YT6.mediaURL(for: request.url))
         for (headerKey, headerVal) in request.headers {
             urlReq.setValue(headerVal, forHTTPHeaderField: headerKey)
         }

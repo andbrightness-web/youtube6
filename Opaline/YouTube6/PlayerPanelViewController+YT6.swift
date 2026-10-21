@@ -29,6 +29,37 @@ extension YT6 {
     }
 }
 
+/// Where the page and its title bar sit, logged when it changes: a dark
+/// band showed above the title bar of a freshly opened page (REQUEST700,
+/// IMG_0238) and the cause is not readable from the code alone.
+extension PlayerPanelViewController {
+    private static var yt6LastLayout = ""
+
+    func yt6LogLayout() {
+        guard let window = view.window else {
+            return
+        }
+        let wrapper = children.compactMap { $0 as? UINavigationController }.first
+        func rect(_ item: UIView?) -> String {
+            guard let item else {
+                return "-"
+            }
+            let frame = item.convert(item.bounds, to: window)
+            let origin = String(format: "%.0f,%.0f", frame.minX, frame.minY)
+            return origin + String(format: " %.0fx%.0f", frame.width, frame.height)
+        }
+        let hidden = wrapper?.isNavigationBarHidden ?? false
+        let line = "panel \(rect(view)) ty=\(view.transform.ty) wrapper \(rect(wrapper?.view))"
+            + " bar \(rect(wrapper?.navigationBar)) hidden=\(hidden)"
+            + " safeTop=\(window.safeAreaInsets.top) expanded=\(isExpanded)"
+        guard line != Self.yt6LastLayout else {
+            return
+        }
+        Self.yt6LastLayout = line
+        AppLog.player("[Layout] \(line)")
+    }
+}
+
 /// 2.0.0 collapsed-player gestures (`-[YTContentView didPanWatchContainer:]`
 /// @603da): drag it up to expand, fling it sideways off screen to close.
 extension PlayerPanelViewController {
