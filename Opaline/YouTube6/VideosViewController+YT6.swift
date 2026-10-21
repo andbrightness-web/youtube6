@@ -13,7 +13,8 @@ extension VideosViewController {
         collectionView.backgroundColor = YT6VideoRow.background
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = 0
-        let size = CGSize(width: collectionView.bounds.width, height: YT6VideoRow.height)
+        let height = yt6ChannelRowHeight ?? YT6VideoRow.height
+        let size = CGSize(width: collectionView.bounds.width, height: height)
         if layout.itemSize != size {
             layout.itemSize = size
             layout.invalidateLayout()
@@ -24,6 +25,9 @@ extension VideosViewController {
         in collectionView: UICollectionView,
         at indexPath: IndexPath
     ) -> UICollectionViewCell {
+        if let cell = yt6ChannelCell(in: collectionView, at: indexPath) {
+            return cell
+        }
         collectionView.register(YT6FeedCell.self, forCellWithReuseIdentifier: YT6FeedCell.reuseId)
         let dequeued = collectionView.dequeueReusableCell(
             withReuseIdentifier: YT6FeedCell.reuseId,

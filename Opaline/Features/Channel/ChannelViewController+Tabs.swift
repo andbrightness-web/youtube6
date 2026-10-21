@@ -154,7 +154,8 @@ extension ChannelViewController {
     }
 
     func applyFilterChips(_ chips: [ChannelFilterChip]) {
-        guard !chips.isEmpty else {
+        // youtube6: no sort chips in 2.0.0.
+        guard !chips.isEmpty, !YT6.isEnabled else {
             return
         }
         filterChips = chips

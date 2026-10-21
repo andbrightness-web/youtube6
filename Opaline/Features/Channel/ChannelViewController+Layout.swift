@@ -72,7 +72,7 @@ extension ChannelViewController {
     /// flickers open again. Pad the bottom until the whole collapse
     /// range is reachable.
     func padBottomInsetForCollapse() {
-        guard let cv = collectionView else {
+        guard !YT6.isEnabled, let cv = collectionView else {
             return
         }
         let contentHeight = cv.collectionViewLayout
@@ -102,6 +102,9 @@ extension ChannelViewController {
     }
 
     func updateInfoBarButton(for info: ChannelInfo) {
+        if YT6.isEnabled {
+            return // youtube6: 2.0.0's search only
+        }
         let hasAbout = info.description != nil
             || info.contactInfo != nil
             || info.videoCountText != nil

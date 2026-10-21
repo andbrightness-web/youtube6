@@ -83,3 +83,12 @@ PlayerLibResources.bundle/overlay_next_fullscreen_disabled
 YouTubeResources.bundle/uploads_guide
 YouTubeResources.bundle/uploads_guide_selected
 UILibResources.bundle/overflow
+# Channel page (YTChannelView_iPhone, YTChannelHeaderView_iPhone, YTTabTitlesView).
+UILibResources.bundle/channelbar
+UILibResources.bundle/channel_default_background
+UILibResources.bundle/thumbnail_border
+UILibResources.bundle/tab_titles_background
+UILibResources.bundle/tab_titles_button
+UILibResources.bundle/tab_titles_button_selected
+UILibResources.bundle/tab_separator
+UILibResources.bundle/bar_shadow

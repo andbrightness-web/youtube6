@@ -130,6 +130,9 @@ final class ChannelViewController: VideosViewController {
     }
 
     override func handleScroll(_ scrollView: UIScrollView) {
+        if YT6.isEnabled {
+            return // youtube6: 2.0.0's top stays put
+        }
         headerView.updateForScroll(scrollView)
         updateScrollInsets(for: scrollView)
     }
@@ -137,6 +140,10 @@ final class ChannelViewController: VideosViewController {
     private func setupLayout() {
         configureErrorLabel()
         guard let cv = collectionView else {
+            return
+        }
+        if YT6.isEnabled {
+            yt6SetupLayout(cv)
             return
         }
         headerView.install(
@@ -162,6 +169,10 @@ final class ChannelViewController: VideosViewController {
     }
 
     private func applyErrorLabelTheme() {
+        if YT6.isEnabled {
+            yt6StyleErrorLabel()
+            return
+        }
         errorLabel.textColor = ThemeManager.shared.secondaryText
     }
 
