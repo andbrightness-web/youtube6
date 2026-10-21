@@ -163,9 +163,9 @@ extension YT6 {
                 : "YouTube refused the video: bot check"
         }
         switch error as? DownloadError {
-        case .storage?:
+        case .storage:
             return russian ? "Не хватает места на iPod" : "Not enough space on the iPod"
-        case .noTracks?, .export?, .missingFile?:
+        case .noTracks, .export, .missingFile:
             return russian ? "Не удалось собрать файл видео" : "Couldn't assemble the video file"
         default:
             break
