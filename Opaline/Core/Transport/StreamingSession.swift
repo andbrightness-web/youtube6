@@ -75,6 +75,9 @@ final class StreamingSession: NSObject, URLSessionDataDelegate {
         // request answers 206, and dropping those left downloads writing
         // empty files while the transfer reported success.
         guard let sink, (200...299).contains(sink.status) else {
+            if YT6.isEnabled, sink == nil {
+                YT6SABRConnections.drained(dataTask, bytes: data.count)
+            }
             return
         }
         guard sink.onChunk(data) else {
@@ -83,6 +86,9 @@ final class StreamingSession: NSObject, URLSessionDataDelegate {
             finish(dataTask.taskIdentifier, with: .success(HTTPResponse(
                 status: sink.status, headers: sink.headers, data: Data()
             )))
+            if YT6.isEnabled, YT6SABRConnections.keep(dataTask) {
+                return
+            }
             dataTask.cancel()
             return
         }
@@ -93,6 +99,9 @@ final class StreamingSession: NSObject, URLSessionDataDelegate {
         task: URLSessionTask,
         didCompleteWithError error: Error?
     ) {
+        if YT6.isEnabled {
+            YT6SABRConnections.ended(task, error: error)
+        }
         // A task the caller stopped has already reported itself; its sink is
         // gone and the cancellation that follows is nothing to act on.
         if URLSessionTransport.isCancelled(error) {
