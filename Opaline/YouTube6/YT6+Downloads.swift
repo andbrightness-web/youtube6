@@ -56,3 +56,16 @@ extension YT6 {
         return icon.withRenderingMode(.alwaysOriginal)
     }
 }
+
+/// The Downloads list on 2.0.0's light background like every other list —
+/// upstream paints it with the app theme, black in dark mode (REQUEST716);
+/// the empty text as 2.0.0's empty lists (16 Light #999, @3e9036).
+extension DownloadsViewController {
+    func yt6ApplyListChrome(table: UITableView, empty: UILabel) {
+        view.backgroundColor = YT6VideoRow.background
+        table.backgroundColor = YT6VideoRow.background
+        table.separatorColor = .clear
+        empty.font = YT6.xLargeLightFont
+        empty.textColor = YT6.guideTitle
+    }
+}

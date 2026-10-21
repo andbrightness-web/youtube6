@@ -136,6 +136,9 @@ final class DownloadsViewController: UIViewController {
         view.backgroundColor = theme.background
         tableView.backgroundColor = theme.background
         tableView.separatorColor = theme.separator
+        if YT6.isEnabled {
+            yt6ApplyListChrome(table: tableView, empty: emptyLabel)
+        }
         tableView.reloadData()
     }
 }
