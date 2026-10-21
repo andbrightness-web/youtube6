@@ -119,7 +119,9 @@ enum DownloadMenu {
                     toast("downloads.error.noOptions", in: presenter, isError: true)
                 case .failure(let error):
                     AppLog.downloads("options failed: \(error)")
-                    toast("downloads.error.failed", in: presenter, isError: true)
+                    let text = YT6.isEnabled
+                        ? YT6.downloadErrorText(error) : "downloads.error.failed"
+                    toast(text, in: presenter, isError: true)
                 }
             }
         }
@@ -177,7 +179,9 @@ enum DownloadMenu {
                 toast("downloads.finished", in: presenter)
             case .failure(let error):
                 AppLog.downloads("job failed: \(error)")
-                toast("downloads.error.failed", in: presenter, isError: true)
+                let text = YT6.isEnabled
+                    ? YT6.downloadErrorText(error) : "downloads.error.failed"
+                toast(text, in: presenter, isError: true)
             }
         }
         toast("downloads.started", in: presenter)

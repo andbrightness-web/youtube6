@@ -24,6 +24,10 @@ extension VideoDownloader {
     }
 
     func fetchTracks(videoId: String, option: DownloadOption) {
+        if YT6.isEnabled, !option.video.hasDirectURL {
+            yt6FetchOverSABR(videoId: videoId, option: option)
+            return
+        }
         let videoPart = videoPartFile(videoId)
         let audioPart = audioPartFile(videoId)
         download(
