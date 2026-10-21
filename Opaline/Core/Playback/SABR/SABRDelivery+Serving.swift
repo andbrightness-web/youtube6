@@ -98,7 +98,7 @@ extension SABRDelivery {
             completion(nil, "")
             return
         }
-        route.fetcher.fetch(request) { result in
+        yt6Fetch(request, of: track, route: route) { result in
             switch result {
             case .success(let data):
                 completion(data, "video/mp4")
@@ -193,8 +193,8 @@ extension SABRDelivery {
             return nil
         }
         return [
-            Track(format: video, segments: videoSegments, path: "video"),
-            Track(format: audio, segments: audioSegments, path: "audio")
+            Track(format: video, segments: videoSegments, path: "video", initData: videoInit),
+            Track(format: audio, segments: audioSegments, path: "audio", initData: audioInit)
         ]
     }
 

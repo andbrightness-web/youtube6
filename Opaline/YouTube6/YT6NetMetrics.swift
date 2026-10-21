@@ -4,7 +4,7 @@ import Foundation
 /// connect, TLS, wait for the first byte, whether the connection was reused
 /// and whether it went through a proxy.
 final class YT6NetMetrics: NSObject, URLSessionTaskDelegate {
-    private static func line(for item: URLSessionTaskTransactionMetrics, host: String) -> String {
+    static func line(for item: URLSessionTaskTransactionMetrics, host: String) -> String {
         func span(_ start: Date?, _ end: Date?) -> String {
             guard let start, let end else {
                 return "-"

@@ -14,6 +14,8 @@ final class YT6Speed {
     private var stallAt: CFTimeInterval?
     private var observations: [NSKeyValueObservation] = []
     private var jumpObserver: NSObjectProtocol?
+    /// Runs once when the tapped video first plays (`YT6Preload`).
+    var onStarted: (() -> Void)?
 
     private static func ms(since start: CFTimeInterval) -> Int {
         Int((CACurrentMediaTime() - start) * 1_000)
@@ -26,6 +28,7 @@ final class YT6Speed {
             self.frameAt = self.tapAt
             self.seekAt = nil
             self.stallAt = nil
+            self.onStarted = nil
             AppLog.hls("[Speed] tap \(videoId)")
         }
     }
@@ -78,6 +81,8 @@ final class YT6Speed {
         case .playing:
             if let tapAt {
                 AppLog.hls("[Speed] playing +\(Self.ms(since: tapAt)) ms after tap")
+                onStarted?()
+                onStarted = nil
             } else if let seekAt {
                 AppLog.hls("[Speed] seek → playing +\(Self.ms(since: seekAt)) ms")
             } else if let stallAt {

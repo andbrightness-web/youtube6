@@ -108,7 +108,10 @@ extension PlaybackFacade {
         apiClient: WatchService,
         videoId: String
     ) -> VideoSource {
-        let steps = PlaybackChainSettings.activeSteps()
+        var steps = PlaybackChainSettings.activeSteps()
+        if YT6.isEnabled {
+            steps = YT6ChainMemory.ordered(steps)
+        }
         if DownloadStore.isDownloaded(videoId) {
             AppLog.player("chain: this video is downloaded, playing the file")
             // The chain rides along unloaded, purely so the quality menu can
@@ -169,6 +172,9 @@ extension PlaybackFacade {
         }
         lastRecoveryAt = Date()
         recoveryAttempts += 1
+        if YT6.isEnabled {
+            YT6PlaybackCache.forget(videoId: videoId)
+        }
         guard recoveryAttempts <= 2 else {
             AppLog.player("recovery: retries spent, giving up")
             return false

@@ -24,6 +24,9 @@ final class SABRDelivery: StreamDelivery {
         let format: DashFormatInfo
         let segments: [SidxSegment]
         let path: String
+        /// The init segment fetched to open the session; served again from
+        /// here when the player asks for it.
+        var initData: Data?
     }
 
     let label = "sabr"
@@ -160,6 +163,9 @@ final class SABRDelivery: StreamDelivery {
         let signed = Self.televisionParams(
             client.directURL(baseURL: url, poToken: nil), cpn: nonce
         )
+        if YT6.isEnabled {
+            YT6SABRSpeed.warm(signed, transport: transport)
+        }
         Self.solvingThrottle(signed) { [weak self] solved in
             self?.openSession(request, url: solved, config: config, completion: completion)
         }
@@ -205,7 +211,7 @@ final class SABRDelivery: StreamDelivery {
         var failure: Error?
         for want in Self.initRequests(for: request) {
             group.enter()
-            fetcher.fetch(want) { result in
+            let landed: (Result<Data, Error>) -> Void = { result in
                 lock.lock()
                 inits[want.format.itag] = try? result.get()
                 if case .failure(let error) = result {
@@ -213,6 +219,14 @@ final class SABRDelivery: StreamDelivery {
                 }
                 lock.unlock()
                 group.leave()
+            }
+            if YT6.isEnabled, let cached = YT6PlaybackCache.initData(for: want.format) {
+                AppLog.hls("[Speed] sabr \(want.format.itag)/init from cache")
+                landed(.success(cached))
+            } else if YT6.isEnabled {
+                YT6SABRSpeed.fetchInit(want, with: fetcher, completion: landed)
+            } else {
+                fetcher.fetch(want, completion: landed)
             }
         }
         group.notify(queue: .global(qos: .userInitiated)) {

@@ -8,6 +8,7 @@ extension WatchViewController {
     func startPlayback() {
         if YT6.isEnabled {
             YT6Speed.shared.markTap(initialVideo.id)
+            yt6PreloadWhenPlaying()
             yt6ShowLoading()
         }
         playbackFacade.watchtimeTracker.timeProvider = { [weak self] in
