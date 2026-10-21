@@ -19,7 +19,7 @@ extension YT6Library {
             videoCountText: local.videoCountText
         )
     }
-}
+
     func localInfo(_ channelId: String) -> ChannelInfo {
         let channel = YT6AndCastChannelMap.channel(channelId)
         let list = videos(ofChannel: channelId)
@@ -58,3 +58,4 @@ extension YT6Library {
             }
         }
     }
+}

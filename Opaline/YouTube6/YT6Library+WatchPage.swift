@@ -8,8 +8,8 @@ import Foundation
 /// date from the catalog, the description from `/v1/items/{id}`
 /// (`Overview`), views and subscribers from the stats base, the channel's
 /// avatar, up next from the server. In «andCast only» every list on the
-/// page is kept to the server's videos. Likes and chapters are not in what
-/// the andCast API hands out.
+/// page is kept to the server's videos. Likes are not in what the andCast
+/// API hands out.
 extension YT6Library {
     private static let maxRelated = 20
 
