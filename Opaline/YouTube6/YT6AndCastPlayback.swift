@@ -76,7 +76,7 @@ enum YT6AndCastPlayback {
             completion(.failure(YT6AndCastError.unavailable("bad address")))
             return
         }
-        request.timeoutInterval = 8
+        request.timeoutInterval = 5
         YT6AndCast.perform(request) { result in
             completion(result.flatMap { data in
                 let body = YT6AndCast.json(data) ?? [:]

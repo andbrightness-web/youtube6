@@ -79,8 +79,8 @@ enum YT6AndCast {
         if let saved = UserDefaults.standard.string(forKey: deviceKey) {
             return saved
         }
-        let made = "youtube6-" + UUID().uuidString.replacingOccurrences(of: "-", with: "")
-            .prefix(16).lowercased()
+        let hex = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let made = "youtube6-" + hex.prefix(16).lowercased()
         UserDefaults.standard.set(made, forKey: deviceKey)
         return made
     }
