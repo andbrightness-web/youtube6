@@ -10,6 +10,12 @@ extension YT6 {
     static let collapsedPlayerRight: CGFloat = 5
     static let collapsedPlayerBottom: CGFloat = 10
 
+    /// The player overlay hides after 4 s of playback and fades out over
+    /// 0.7 s (a tap still hides it in 0.2 s) — the same in fullscreen
+    /// (ipodos27 research/YOUTUBE6-STAGE3-WATCH, «Полный экран»).
+    static let autoHideDelay: TimeInterval = 4
+    static let autoHideFade: TimeInterval = 0.7
+
     /// Mini player trailing constant in `MainTabBarController`.
     static var miniTrailing: CGFloat {
         isEnabled ? -collapsedPlayerRight : -12

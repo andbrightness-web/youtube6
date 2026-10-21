@@ -79,7 +79,7 @@ extension CGFloat {
 // MARK: - Controls Visibility
 
 extension VideoPlayerView {
-    func setControls(visible: Bool, animated: Bool) {
+    func setControls(visible: Bool, animated: Bool, duration: TimeInterval = 0.2) {
         controlsVisible = visible
         // `updateProgress` skips the seek bar while the overlay is hidden,
         // so catch it up before it comes back into view.
@@ -87,7 +87,7 @@ extension VideoPlayerView {
             updateProgress(time: time)
         }
         let targetAlpha: CGFloat = visible ? 1 : .hiddenControlsAlpha
-        let animDuration = animated ? 0.2 : 0
+        let animDuration = animated ? duration : 0
         UIView.animate(withDuration: animDuration) {
             self.controlsView.alpha = targetAlpha
             self.topGradientLayer.opacity = visible
@@ -112,12 +112,13 @@ extension VideoPlayerView {
             }
             self.setControls(
                 visible: false,
-                animated: true
+                animated: true,
+                duration: YT6.isEnabled ? YT6.autoHideFade : 0.2
             )
         }
         hideWorkItem = item
         DispatchQueue.main.asyncAfter(
-            deadline: .now() + 3,
+            deadline: .now() + (YT6.isEnabled ? YT6.autoHideDelay : 3),
             execute: item
         )
     }
