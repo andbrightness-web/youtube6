@@ -108,7 +108,10 @@ extension PlaybackFacade {
         apiClient: WatchService,
         videoId: String
     ) -> VideoSource {
-        let steps = PlaybackChainSettings.activeSteps()
+        var steps = PlaybackChainSettings.activeSteps()
+        if YT6.isEnabled {
+            steps = YT6ChainMemory.ordered(steps)
+        }
         if DownloadStore.isDownloaded(videoId) {
             AppLog.player("chain: this video is downloaded, playing the file")
             // The chain rides along unloaded, purely so the quality menu can
