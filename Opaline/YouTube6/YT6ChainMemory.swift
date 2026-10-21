@@ -38,6 +38,20 @@ enum YT6ChainMemory {
         return now.timeIntervalSince(at) < coolDown
     }
 
+    /// Whether `client` was bot-checked within the cool-down — asked by the
+    /// downloader, whose `/player` is the same request playback makes.
+    static func isBotChecked(_ client: String) -> Bool {
+        isCooling(client)
+    }
+
+    /// A bot check seen outside the chain (the downloader's VISIONOS
+    /// `/player`): playback skips the client too.
+    static func noteBotCheck(_ client: String) {
+        lock.lock()
+        checkedAt[client] = Date()
+        lock.unlock()
+    }
+
     /// The chain for one open: bot-checked clients after the others, each
     /// group in the user's order.
     static func ordered(_ steps: [PlaybackStep], logs: Bool = true) -> [PlaybackStep] {

@@ -77,6 +77,9 @@ final class VideoDownloader {
         for videoId: String,
         completion: @escaping (Result<[DownloadOption], Error>) -> Void
     ) {
+        if YT6.isEnabled {
+            return yt6Options(for: videoId, completion: completion)
+        }
         apiClient.fetchDirectPlayback(
             videoId: videoId,
             client: client,

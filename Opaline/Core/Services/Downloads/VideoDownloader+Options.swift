@@ -8,13 +8,18 @@ extension VideoDownloader {
     /// AV1 and VP9 are left out on purpose: `AVAssetExportSession` will not
     /// pass them through into an MP4, and on the devices this app targets a
     /// software AV1 decode is not something to hand someone offline.
-    static func options(in info: DirectPlaybackInfo) -> [DownloadOption] {
-        guard let audio = audioFormat(in: info) else {
+    ///
+    /// `overSABR` (youtube6, tv.sabr) drops the demand for a direct URL: the
+    /// TV client hands out none, SABR names formats by itag.
+    static func options(
+        in info: DirectPlaybackInfo, overSABR: Bool = false
+    ) -> [DownloadOption] {
+        guard let audio = audioFormat(in: info, overSABR: overSABR) else {
             return []
         }
         var best: [Int: DashFormatInfo] = [:]
         for format in info.allDashVideoFormats
-            where format.hasDirectURL
+            where (overSABR || format.hasDirectURL)
             && format.codecs.hasPrefix("avc1")
             && format.sigChallenge == nil {
             guard let height = format.height else {
@@ -42,10 +47,10 @@ extension VideoDownloader {
     /// this person would have heard: downloading the original of an English
     /// video that plays back in Russian gives them a file they cannot watch.
     private static func audioFormat(
-        in info: DirectPlaybackInfo
+        in info: DirectPlaybackInfo, overSABR: Bool
     ) -> DashFormatInfo? {
         let mp4 = info.allDashAudioFormats.filter {
-            $0.hasDirectURL && $0.codecs.hasPrefix("mp4a")
+            (overSABR || $0.hasDirectURL) && $0.codecs.hasPrefix("mp4a")
         }
         let dubbed = AutoDubPreference
             .autoDubTrack(in: mp4.compactMap(track))
@@ -54,7 +59,7 @@ extension VideoDownloader {
             }
         let original = mp4.first { $0.audioIsOriginal }
         let fallback = info.dashAudioFormat.flatMap {
-            $0.hasDirectURL && $0.codecs.hasPrefix("mp4a") ? $0 : nil
+            (overSABR || $0.hasDirectURL) && $0.codecs.hasPrefix("mp4a") ? $0 : nil
         }
         if let dubbed {
             AppLog.downloads("saving the \(dubbed.audioTrackId ?? "?") dub")
