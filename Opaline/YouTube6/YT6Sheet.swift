@@ -89,12 +89,22 @@ enum YT6Sheet {
         let sheet = makeSheet(sheetClass, make, title as NSString?, false).takeUnretainedValue()
         let addButton = unsafeBitCast(addIMP, to: Add.self)
         for button in buttons {
-            let block: Handler? = button.handler.map { action in { action() } }
-            addButton(sheet, add, button.title as NSString, ObjCBool(button.destructive), block)
+            let title = button.title as NSString
+            addButton(sheet, add, title, ObjCBool(button.destructive), block(button))
         }
         unsafeBitCast(cancelIMP, to: AddCancel.self)(sheet, cancel, cancelTitle as NSString, nil)
         unsafeBitCast(showIMP, to: Show.self)(sheet, show, host)
         return true
+    }
+
+    private static func block(_ button: Button) -> Handler? {
+        guard let action = button.handler else {
+            return nil
+        }
+        let handler: Handler = {
+            action()
+        }
+        return handler
     }
 
     private static func imp(_ cls: AnyClass, _ sel: Selector, ofClass: Bool = false) -> IMP? {
