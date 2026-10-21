@@ -156,6 +156,7 @@ extension StreamingSession {
             }
             let status = (item.response as? HTTPURLResponse)?.statusCode ?? 0
             let path = item.request.url?.lastPathComponent ?? ""
+            YT6SABRStats.note(item, host: host)
             AppLog.hls("[Speed] sabr " + YT6NetMetrics.line(for: item, host: host)
                 + " \(path) \(status)")
         }

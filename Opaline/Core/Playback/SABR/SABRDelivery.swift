@@ -165,6 +165,7 @@ final class SABRDelivery: StreamDelivery {
         )
         if YT6.isEnabled {
             YT6SABRSpeed.warm(signed, transport: transport)
+            YT6SABRStats.begin(signed, transport: transport, owner: self)
         }
         Self.solvingThrottle(signed) { [weak self] solved in
             self?.openSession(request, url: solved, config: config, completion: completion)
