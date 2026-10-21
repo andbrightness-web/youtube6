@@ -35,6 +35,20 @@ extension YT6 {
 extension PlayerPanelViewController {
     private static var yt6LastLayout = ""
 
+    /// A fresh page lays its title bar out while the wrapper still touches
+    /// the top of the screen, i.e. 20 pt down for the status bar, and keeps
+    /// that once the wrapper moves under the status bar: the dark band
+    /// above the bar ([Layout] 11:52:01: wrapper 0,20, bar 0,40; right
+    /// after a rotation). Hiding and showing the bar makes it lay out again.
+    func yt6RelayoutBar(_ wrapper: UINavigationController) {
+        guard !wrapper.isNavigationBarHidden else {
+            return
+        }
+        wrapper.view.layoutIfNeeded()
+        wrapper.setNavigationBarHidden(true, animated: false)
+        wrapper.setNavigationBarHidden(false, animated: false)
+    }
+
     func yt6LogLayout() {
         guard let window = view.window else {
             return

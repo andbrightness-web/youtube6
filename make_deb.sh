@@ -78,15 +78,22 @@ Description: Lightweight YouTube client for iOS 12+
  audio, PiP, subtitles. No ads, no tracking, no dependencies.
 EOF
 
+  # Register this app only. A full `uicache -a` re-registers every app and
+  # pkd restarts every plugin with them — the running VPN tunnel included,
+  # which then stays down (ipodos27 REQUEST700, audit
+  # 2026-10-21-ipod-shadowrocket-vpn). dpkg also runs the old postrm on
+  # every upgrade, so it may only act on a real removal.
   cat > "$CTRL/postinst" <<EOF
 #!/bin/sh
-uicache -p "$PREFIX/Applications/$INSTALL_NAME.app" 2>/dev/null || uicache -a || true
+uicache -p "$PREFIX/Applications/$INSTALL_NAME.app" 2>/dev/null || true
 exit 0
 EOF
 
-  cat > "$CTRL/postrm" <<'EOF'
+  cat > "$CTRL/postrm" <<EOF
 #!/bin/sh
-uicache -a || true
+case "\$1" in
+  remove|purge) uicache -u "$PREFIX/Applications/$INSTALL_NAME.app" 2>/dev/null || true ;;
+esac
 exit 0
 EOF
   chmod 0755 "$CTRL/postinst" "$CTRL/postrm"

@@ -166,6 +166,10 @@ private extension PlayerPanelViewController {
             return
         }
         let top = window.safeAreaInsets.top
+        if YT6.isEnabled, navWrapperTopConstraint?.constant != top {
+            navWrapperTopConstraint?.constant = top
+            yt6RelayoutBar(navigationWrapper)
+        }
         navWrapperTopConstraint?.constant = top
         statusBarBackdrop.backgroundColor = ThemeManager.shared.surface
     }
