@@ -53,8 +53,12 @@ enum YT6ChainMemory {
 
     /// The step to try after `index` failed with `error`: past every step of
     /// the same client when the failure was a bot check, the next one
-    /// otherwise. `steps.count` when none is left.
-    static func next(after index: Int, in steps: [PlaybackStep], failure error: Error) -> Int {
+    /// otherwise. `steps.count` when none is left. The video's cached
+    /// answers go too: they may be what failed.
+    static func next(
+        after index: Int, in steps: [PlaybackStep], failure error: Error, videoId: String
+    ) -> Int {
+        YT6PlaybackCache.forget(videoId: videoId)
         guard let apiError = error as? APIError, case .botCheck = apiError else {
             return index + 1
         }

@@ -35,6 +35,11 @@ extension SABRDelivery {
             completion(url)
             return
         }
+        if YT6.isEnabled, let solved = YT6PlaybackCache.solvedN(for: unsolved) {
+            AppLog.player("[Speed] sabr: n from cache")
+            completion(StreamURLParams.replacingN(in: url, solved: solved))
+            return
+        }
         SignatureTimestampService.shared.tvPlayerPath { jsPath in
             resolver.solveN(unsolved: unsolved, jsPath: jsPath) { solved in
                 guard let solved else {
@@ -43,6 +48,9 @@ extension SABRDelivery {
                     return
                 }
                 AppLog.player("sabr: n solved")
+                if YT6.isEnabled {
+                    YT6PlaybackCache.storeSolvedN(solved, for: unsolved)
+                }
                 completion(StreamURLParams.replacingN(in: url, solved: solved))
             }
         }

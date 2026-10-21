@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 
+// swiftlint:disable type_body_length
 /// Innertube adaptive-format source: fetches adaptive DASH formats and plays
 /// them as a SIDX-generated HLS stream (with native-HLS / progressive
 /// fallbacks). Owns quality selection from the DASH ladder.
@@ -110,6 +111,9 @@ final class InnertubeVideoSource: VideoSource {
         mintingTokenIfNeeded { [weak self] poToken in
             guard let self else {
                 return
+            }
+            if YT6.isEnabled {
+                return yt6FetchDirectPlayback(videoId, poToken, cancellation, completion)
             }
             apiClient.fetchDirectPlayback(
                 videoId: videoId,
@@ -245,6 +249,8 @@ final class InnertubeVideoSource: VideoSource {
         )
     }
 }
+
+// swiftlint:enable type_body_length
 
 // MARK: - Live HLS
 

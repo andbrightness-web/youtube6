@@ -220,7 +220,10 @@ final class SABRDelivery: StreamDelivery {
                 lock.unlock()
                 group.leave()
             }
-            if YT6.isEnabled {
+            if YT6.isEnabled, let cached = YT6PlaybackCache.initData(for: want.format) {
+                AppLog.hls("[Speed] sabr \(want.format.itag)/init from cache")
+                landed(.success(cached))
+            } else if YT6.isEnabled {
                 YT6SABRSpeed.fetchInit(want, with: fetcher, completion: landed)
             } else {
                 fetcher.fetch(want, completion: landed)

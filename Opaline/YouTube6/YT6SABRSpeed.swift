@@ -120,6 +120,9 @@ private final class YT6InitRace {
         done = true
         let total = launched
         lock.unlock()
+        if case .success(let data) = result {
+            YT6PlaybackCache.storeInit(data, for: request.format)
+        }
         AppLog.hls("[Speed] sabr \(label) +\(elapsed) ms (request \(attempt) of \(total))")
         completion(result)
     }

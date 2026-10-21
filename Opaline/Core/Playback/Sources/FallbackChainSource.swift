@@ -176,7 +176,7 @@ final class FallbackChainSource: VideoSource {
         }
         AppLog.player("chain: \(step.id) failed (\(error.localizedDescription))")
         let next = YT6.isEnabled
-            ? YT6ChainMemory.next(after: index, in: steps, failure: error)
+            ? YT6ChainMemory.next(after: index, in: steps, failure: error, videoId: videoId)
             : index + 1
         DispatchQueue.main.async { [weak self] in
             self?.attempt(

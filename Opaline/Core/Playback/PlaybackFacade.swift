@@ -172,6 +172,9 @@ extension PlaybackFacade {
         }
         lastRecoveryAt = Date()
         recoveryAttempts += 1
+        if YT6.isEnabled {
+            YT6PlaybackCache.forget(videoId: videoId)
+        }
         guard recoveryAttempts <= 2 else {
             AppLog.player("recovery: retries spent, giving up")
             return false
