@@ -70,6 +70,7 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
             // refresh area and spinner (REQUEST700).
             root.loadViewIfNeeded()
             YT6PullRefresh.attach(under: root.view)
+            YT6TapThrough.attach(under: root.view)
         }
     }
 
