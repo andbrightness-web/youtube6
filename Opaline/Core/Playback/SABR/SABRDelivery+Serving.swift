@@ -98,11 +98,7 @@ extension SABRDelivery {
             completion(nil, "")
             return
         }
-        if YT6.isEnabled, name == "init", let data = track.initData {
-            completion(data, "video/mp4")
-            return
-        }
-        route.fetcher.fetch(request) { result in
+        yt6Fetch(request, of: track, route: route) { result in
             switch result {
             case .success(let data):
                 completion(data, "video/mp4")

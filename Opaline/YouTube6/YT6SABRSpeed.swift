@@ -42,16 +42,25 @@ enum YT6SABRSpeed {
         with fetcher: SABRFetcher,
         completion: @escaping (Result<Data, Error>) -> Void
     ) {
-        let race = YT6InitRace(request: request, fetcher: fetcher, completion: completion)
+        fetchHedged(request, with: fetcher, after: hedgeDelay, completion: completion)
+    }
+
+    static func fetchHedged(
+        _ request: SABRSegmentRequest,
+        with fetcher: SABRFetcher,
+        after delay: TimeInterval,
+        completion: @escaping (Result<Data, Error>) -> Void
+    ) {
+        let race = YT6SegmentRace(request: request, fetcher: fetcher, completion: completion)
         race.send(1)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + hedgeDelay) {
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + delay) {
             race.hedge(reason: "slow")
         }
     }
 }
 
-/// First answer of up to two identical init requests.
-private final class YT6InitRace {
+/// First answer of up to two identical SABR segment requests.
+private final class YT6SegmentRace {
     private let request: SABRSegmentRequest
     private let fetcher: SABRFetcher
     private let completion: (Result<Data, Error>) -> Void
@@ -62,7 +71,7 @@ private final class YT6InitRace {
     private var done = false
 
     private var label: String {
-        "\(request.format.itag)/init"
+        "\(request.format.itag)/\(request.isInit ? "init" : "\(request.sequence)")"
     }
 
     private var elapsed: Int {
@@ -120,7 +129,7 @@ private final class YT6InitRace {
         done = true
         let total = launched
         lock.unlock()
-        if case .success(let data) = result {
+        if request.isInit, case .success(let data) = result {
             YT6PlaybackCache.storeInit(data, for: request.format)
         }
         AppLog.hls("[Speed] sabr \(label) +\(elapsed) ms (request \(attempt) of \(total))")
