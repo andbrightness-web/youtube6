@@ -130,6 +130,7 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
     // MARK: Rows
 
     private func handle(_ row: YT6GuideViewController.Row) {
+        collapsePage()
         switch row {
         case .section(let section):
             tabs.yt6Select(section)
@@ -168,6 +169,18 @@ final class YT6GuideContainer: NSObject, UIGestureRecognizerDelegate {
     }
 
     // MARK: Pan (`pan:`, `bounceWithOffset:`)
+
+    /// `-[YTGuideController didTapEntry:]` @c82a starts with
+    /// `collapseWatchIfExpanded`: picking anything in the guide sends an
+    /// expanded video to the collapsed player, still playing (REQUEST708).
+    private func collapsePage() {
+        guard let page = root?.children.compactMap({ $0 as? PlayerPanelViewController }).first,
+              page.isExpanded
+        else {
+            return
+        }
+        page.collapse(animated: true)
+    }
 
     /// The watch page belongs to the content area in 2.0.0 (`YTContentView`)
     /// and slides aside with it (REQUEST704). Its controller has to stay a
