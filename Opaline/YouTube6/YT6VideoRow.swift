@@ -44,10 +44,15 @@ final class YT6VideoRow: UIView {
         thumbnail.backgroundColor = UIColor(white: 0.85, alpha: 1)
         addSubview(thumbnail)
         setUpLabels()
-        menu.setTitle("⋮", for: .normal)
-        menu.setTitleColor(YT6.guideTitle, for: .normal)
+        // `overflow.png` 21×21, top right 10/4 (`YTBaseVideoCell`); 2.0.0
+        // showed it only on iPad and opened the sheet on a long press on
+        // iPhone — both here (REQUEST710).
+        menu.setImage(YT6.image("overflow"), for: .normal)
         menu.addTarget(self, action: #selector(tapMenu), for: .touchUpInside)
         addSubview(menu)
+        addGestureRecognizer(
+            UILongPressGestureRecognizer(target: self, action: #selector(pressMenu(_:)))
+        )
         setUpDownload()
     }
 
@@ -73,9 +78,9 @@ final class YT6VideoRow: UIView {
             width: size.width,
             height: size.height
         )
-        menu.frame = CGRect(x: bounds.width - 28, y: 0, width: 28, height: 36)
+        menu.frame = CGRect(x: bounds.width - 4 - 21 - 11.5, y: 10 - 11.5, width: 44, height: 44)
         let left = thumbnail.frame.maxX + Self.textGap
-        let width = bounds.width - left - Self.textRight - menu.frame.width + 12
+        let width = bounds.width - left - Self.textRight - 16
         let fit = CGSize(width: width, height: .greatestFiniteMagnitude)
         title.frame.size = title.sizeThatFits(fit)
         title.frame.size.width = width
@@ -163,6 +168,13 @@ final class YT6VideoRow: UIView {
     @objc
     private func tapMenu() {
         onMenuTap?(menu)
+    }
+
+    @objc
+    private func pressMenu(_ press: UILongPressGestureRecognizer) {
+        if press.state == .began, !menu.isHidden {
+            onMenuTap?(menu)
+        }
     }
 }
 

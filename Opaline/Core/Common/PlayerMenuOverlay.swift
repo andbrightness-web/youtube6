@@ -96,6 +96,9 @@ final class PlayerMenuOverlay: UIView {
         style: Style = .overVideo,
         from sourceRect: CGRect? = nil
     ) {
+        if YT6.isEnabled, YT6Sheet.show(title: title, items: items, in: host) {
+            return
+        }
         let overlay = PlayerMenuOverlay(frame: host.bounds)
         overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         overlay.items = items

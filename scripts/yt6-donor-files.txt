@@ -82,3 +82,4 @@ PlayerLibResources.bundle/overlay_next_fullscreen
 PlayerLibResources.bundle/overlay_next_fullscreen_disabled
 YouTubeResources.bundle/uploads_guide
 YouTubeResources.bundle/uploads_guide_selected
+UILibResources.bundle/overflow
