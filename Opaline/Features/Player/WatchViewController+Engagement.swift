@@ -99,6 +99,9 @@ extension WatchViewController {
         // marks an already-saved video.
         updateSaveButton()
         updateDownloadButton()
+        if YT6.isEnabled {
+            yt6ApplyColors()
+        }
     }
 
     func applyThemeToSubscribeButton() {
@@ -111,6 +114,9 @@ extension WatchViewController {
         } else {
             subscribeButton.backgroundColor = theme.accent
             subscribeButton.setTitleColor(.white, for: .normal)
+        }
+        if YT6.isEnabled {
+            yt6StyleSubscribe()
         }
     }
 
@@ -128,6 +134,9 @@ extension WatchViewController {
                 : "player.description.more".localized,
             for: .normal
         )
+        if YT6.isEnabled {
+            yt6UpdateDescription()
+        }
         view.setNeedsLayout()
     }
 
@@ -151,6 +160,9 @@ extension WatchViewController {
             ? activeTint : tint
         dislikeCountLabel.textColor = currentLikeStatus == .dislike
             ? activeTint : secondary
+        if YT6.isEnabled {
+            yt6UpdateLikes()
+        }
     }
 
     func handleLikeToggleResult(

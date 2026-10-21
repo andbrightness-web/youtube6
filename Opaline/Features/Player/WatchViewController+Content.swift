@@ -74,7 +74,11 @@ extension WatchViewController {
         publishedAt: String?
     )
         -> String {
-        [
+        if YT6.isEnabled {
+            // 2.0.0 shows the views alone; the date leads the description.
+            return viewCount ?? ""
+        }
+        return [
             viewCount,
             publishedAt.map(
                 VideoFormatters.formatRelativeDate
@@ -180,6 +184,9 @@ extension WatchViewController {
         )
         isSubscribed = page.isSubscribed
         subscribeButton.isHidden = false
+        if YT6.isEnabled {
+            yt6StyleSubscribe()
+        }
         descriptionText = page.description ?? ""
         applyDescriptionText()
         descriptionExpanded = false
@@ -192,6 +199,10 @@ extension WatchViewController {
     /// skipped when neither input changed since the last call (the watch
     /// page landing twice, or a theme re-apply with the same text).
     func applyDescriptionText() {
+        if YT6.isEnabled {
+            yt6ApplyDescriptionText()
+            return
+        }
         let theme = ThemeManager.shared
         if let cached = descriptionAttributedCache,
            cached.text == descriptionText,

@@ -151,6 +151,7 @@ final class WatchViewController: UIViewController {
     /// Doubles as the download button's caption: "Download" at rest, the
     /// running percentage while a job is on.
     let downloadStatusLabel = UILabel()
+    var yt6: YT6WatchChrome? // youtube6: the 2.0.0 watch page
     let likeCountLabel = UILabel()
     let dislikeCountLabel = UILabel()
     var likeCount: String?, dislikeCount: String?

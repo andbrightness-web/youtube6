@@ -66,6 +66,10 @@ enum YT6 {
     static let smallLightFont = font(12)
     /// `+XXSmallLightFont` @3f5e44 — 10 (guide section headers).
     static let xxSmallLightFont = font(10)
+    /// `+mediumLightFont` — 13 (watch page text, `YTVideoInfoCell`).
+    static let mediumLightFont = font(13)
+    /// `+XSmallLightFont` — 11.
+    static let xSmallLightFont = font(11)
 
     // MARK: Strings
 

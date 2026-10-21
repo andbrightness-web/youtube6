@@ -44,6 +44,9 @@ extension WatchViewController {
             view.bringSubviewToFront(sheet)
         }
         view.bringSubviewToFront(queueBar)
+        if YT6.isEnabled {
+            yt6LayoutTick()
+        }
     }
 
     /// The size-dependent half of `updateLayoutForSize`, split out only to
@@ -122,6 +125,10 @@ extension WatchViewController {
         isLandscape: Bool,
         containerSize: CGSize? = nil
     ) {
+        if YT6.isEnabled {
+            yt6UpdateRelatedLayout(isLandscape: isLandscape)
+            return
+        }
         let layout = isLandscape
             ? landscapeRelatedLayout
             : portraitRelatedLayout

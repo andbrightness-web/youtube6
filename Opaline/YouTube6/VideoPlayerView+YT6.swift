@@ -12,6 +12,7 @@ extension VideoPlayerView {
     private static let yt6BarHeight: CGFloat = 44
     private static let yt6ButtonSize: CGFloat = 29
     private static let yt6Gap: CGFloat = 8
+    private static let yt6CollapseTag = 0x7936
 
     func yt6RestyleControls() {
         let extras = [
@@ -31,8 +32,35 @@ extension VideoPlayerView {
         ccButton.setTitle(nil, for: .normal)
         ccButton.setImage(YT6.image("player_bar_cc"), for: .normal)
         ccButton.setImage(YT6.image("player_bar_cc_selected"), for: .selected)
+        yt6AddCollapseButton()
         yt6UpdateIcons()
         yt6ActivateBar(bar)
+    }
+
+    /// `overlay_watch_collapse` 8 pt in from the top left
+    /// (`-[YTPlayerOverlayView layoutSubviews]` @3b85a8), shown with the
+    /// controls while the page is expanded. It travels up the responder
+    /// chain to the watch page, which owns the panel.
+    private func yt6AddCollapseButton() {
+        let button = UIButton(type: .custom)
+        button.tag = Self.yt6CollapseTag
+        button.setImage(YT6.image("overlay_watch_collapse"), for: .normal)
+        button.accessibilityLabel = YT6.string("watch.collapse.access", fallback: "Collapse")
+        button.addTarget(
+            nil,
+            action: #selector(WatchViewController.yt6CollapseTapped),
+            for: .touchUpInside
+        )
+        button.translatesAutoresizingMaskIntoConstraints = false
+        controlsView.addSubview(button)
+        let safe = controlsView.safeAreaLayoutGuide
+        let inset = YT6.Watch.collapseInset
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: safe.topAnchor, constant: inset),
+            button.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: inset),
+            button.widthAnchor.constraint(equalToConstant: Self.yt6ButtonSize),
+            button.heightAnchor.constraint(equalToConstant: Self.yt6ButtonSize)
+        ])
     }
 
     /// Drops upstream's placement of the bar views (and only each view's own
@@ -108,5 +136,6 @@ extension VideoPlayerView {
             YT6.image(isFullscreen ? "player_bar_smallscreen" : "player_bar_fullscreen"),
             for: .normal
         )
+        controlsView.viewWithTag(Self.yt6CollapseTag)?.isHidden = isFullscreen
     }
 }

@@ -40,6 +40,9 @@ extension WatchViewController: UICollectionViewDataSource {
         cellForItemAt indexPath: IndexPath
     )
         -> UICollectionViewCell {
+        if YT6.isEnabled {
+            return yt6RelatedCell(at: indexPath)
+        }
         guard let cell = collectionView.dequeueReusableCell(
             withReuseIdentifier: VideoCell.reuseId,
             for: indexPath
@@ -130,7 +133,10 @@ extension WatchViewController: UICollectionViewDelegateFlowLayout {
         referenceSizeForHeaderInSection section: Int
     )
         -> CGSize {
-        CGSize(
+        if YT6.isEnabled {
+            return .zero
+        }
+        return CGSize(
             width: collectionView.bounds.width,
             height: WatchViewController.relatedHeaderHeight
         )
@@ -147,6 +153,7 @@ extension WatchViewController: UIScrollViewDelegate {
             return
         }
         isOuterScrollViewDragging = true
+        yt6?.beginDragging(scrollView)
     }
 
     func scrollViewDidEndDragging(
@@ -158,6 +165,7 @@ extension WatchViewController: UIScrollViewDelegate {
         }
         if !decelerate {
             isOuterScrollViewDragging = false
+            yt6?.snap(scrollView)
         }
     }
 
@@ -168,6 +176,7 @@ extension WatchViewController: UIScrollViewDelegate {
             return
         }
         isOuterScrollViewDragging = false
+        yt6?.snap(scrollView)
     }
 
     /// The sidebar gets its content while it still has no size, and when the
@@ -193,6 +202,12 @@ extension WatchViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(
         _ scrollView: UIScrollView
     ) {
+        if let yt6, scrollView === self.scrollView {
+            // 2.0.0 reveals more related videos with «ДРУГИЕ ВАРИАНТЫ», not
+            // by scrolling to the end.
+            yt6.didScroll(scrollView)
+            return
+        }
         if scrollView === relatedCollectionView {
             clampRelatedOffset(scrollView)
         }

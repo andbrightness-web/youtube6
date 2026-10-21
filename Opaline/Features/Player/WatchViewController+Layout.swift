@@ -112,6 +112,9 @@ extension WatchViewController {
         let sel = #selector(openChannel)
         channelAvatarView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: sel))
         channelNameLabel.addGestureRecognizer(UITapGestureRecognizer(target: self, action: sel))
+        if YT6.isEnabled {
+            yt6RestyleWatch()
+        }
     }
 
     func setupScrollAndPlayer() {
