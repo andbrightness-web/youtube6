@@ -40,6 +40,9 @@ enum AppLanguage: String, CaseIterable {
     /// The effective UI language: the override, else the closest supported
     /// match to the system language, else English.
     static var effective: AppLanguage {
+        if YT6.isEnabled {
+            return YT6.interfaceLanguage
+        }
         if let override {
             return override
         }

@@ -26,7 +26,8 @@ final class LocalizationManager {
     /// change keeps its strings — the caller decides between rebuilding the
     /// root controller and a restart prompt (see the localization plan).
     func reload() {
-        guard let code = AppLanguage.override?.rawValue,
+        let override: AppLanguage? = YT6.isEnabled ? YT6.interfaceLanguage : AppLanguage.override
+        guard let code = override?.rawValue,
               let path = Bundle.main.path(forResource: code, ofType: "lproj"),
               let localized = Bundle(path: path) else {
             bundle = .main

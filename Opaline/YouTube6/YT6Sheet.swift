@@ -43,7 +43,7 @@ enum YT6Sheet {
     }
 
     private static var moreTitle: String {
-        Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "Ещё…" : "More…"
+        YT6.isRussianInterface ? "Ещё…" : "More…"
     }
 
     /// False when the iOS 6 sheet is not available.

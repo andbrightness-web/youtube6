@@ -151,7 +151,7 @@ extension YT6 {
     /// A failed download in words that say what to do (REQUEST718), in place
     /// of upstream's one «Не удалось скачать это видео» for everything.
     static func downloadErrorText(_ error: Error) -> String {
-        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let russian = YT6.isRussianInterface
         if case YT6DownloadFailure.signInNeeded = error {
             return russian
                 ? "YouTube проверяет на робота — войдите в аккаунт, чтобы сохранять"

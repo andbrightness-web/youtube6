@@ -83,7 +83,7 @@ enum YT6Section: Int, CaseIterable {
     var title: String {
         if self == .liked || self == .downloads {
             let russian = self == .liked ? "Понравившиеся" : "Загрузки"
-            return Locale.preferredLanguages.first?.hasPrefix("ru") == true
+            return YT6.isRussianInterface
                 ? russian
                 : info.fallback
         }
@@ -169,10 +169,8 @@ extension MainTabBarController {
         let defaults = UserDefaults.standard
         defaults.set(HomeLayout.grid.rawValue, forKey: UserDefaultsKeys.Feed.homeLayout)
         // No auto-dub in 2013, and its probe cost a second stream build
-        // (REQUEST685) — off unless chosen in Settings.
-        if defaults.object(forKey: UserDefaultsKeys.AutoDub.enabled) == nil {
-            defaults.set(false, forKey: UserDefaultsKeys.AutoDub.enabled)
-        }
+        // (REQUEST685); English interface, original titles (REQUEST719).
+        YT6Language.applyDefaults()
         tabBar.isHidden = true
         yt6Stacks = YT6Section.allCases.map { section in
             let root = section.makeRoot(dependencies)
