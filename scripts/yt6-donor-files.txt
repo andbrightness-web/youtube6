@@ -105,3 +105,11 @@ UILibResources.bundle/grouped_table_card_bottom_dark
 UILibResources.bundle/grouped_table_card_single_dark
 YouTubeResources.bundle/video_list_disclosure
 YouTubeResources.bundle/video_list_disclosure_selected
+# Settings (2.0.0 YTSettingsCell cards, picker checkmark and Done, top shadow).
+UILibResources.bundle/grouped_table_card_top_selected
+UILibResources.bundle/grouped_table_card_middle_selected
+UILibResources.bundle/grouped_table_card_bottom_selected
+UILibResources.bundle/grouped_table_card_selected
+UILibResources.bundle/checkmark
+UILibResources.bundle/checkmark_selected
+UILibResources.bundle/button_blue

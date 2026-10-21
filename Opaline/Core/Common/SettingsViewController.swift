@@ -149,6 +149,18 @@ final class SettingsViewController: UIViewController {
             tableView.reloadSections(IndexSet(integer: idx), with: .automatic)
         }
     }
+
+    override func present(
+        _ viewControllerToPresent: UIViewController,
+        animated flag: Bool,
+        completion: (() -> Void)? = nil
+    ) {
+        // youtube6: choice sheets become the 2.0.0 picker.
+        if YT6.isEnabled, yt6Present(viewControllerToPresent, completion: completion) {
+            return
+        }
+        super.present(viewControllerToPresent, animated: flag, completion: completion)
+    }
 }
 
 // MARK: - Data source / delegate
