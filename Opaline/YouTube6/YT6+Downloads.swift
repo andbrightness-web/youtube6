@@ -1,0 +1,40 @@
+import UIKit
+
+/// Downloads in the 2013 dress (REQUEST711). 2.0.0 could not save videos,
+/// so these lean on its look: «Save to iPod» in the action sheets, a
+/// «Downloads» row in the guide's account group, settings in Settings.
+extension YT6 {
+    /// «Download» in the menus, as 2013 would have said it.
+    static var saveToDeviceTitle: String {
+        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        return russian ? "Сохранить на iPod" : "Save to iPod"
+    }
+
+    /// The guide row's icon: 2.0.0 has no download glyph. APPROXIMATION:
+    /// `uploads_guide` (arrow up over a bar, 35 pt) with the arrow turned
+    /// down — the arrow fills 10–20 pt of its height, the bar stays.
+    static func downloadsGuideIcon(selected: Bool) -> UIImage? {
+        guard let uploads = image(selected ? "uploads_guide_selected" : "uploads_guide") else {
+            return nil
+        }
+        let size = uploads.size
+        let band = CGRect(x: 0, y: 10, width: size.width, height: 10)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = uploads.scale
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let rect = CGRect(origin: .zero, size: size)
+            context.cgContext.saveGState()
+            let below = CGRect(x: 0, y: band.maxY, width: size.width, height: size.height)
+            context.cgContext.clip(to: [below])
+            uploads.draw(in: rect)
+            context.cgContext.restoreGState()
+            context.cgContext.saveGState()
+            context.cgContext.clip(to: band)
+            // Mirror the band in place: y -> band.minY + band.maxY - y.
+            context.cgContext.translateBy(x: 0, y: band.minY + band.maxY)
+            context.cgContext.scaleBy(x: 1, y: -1)
+            uploads.draw(in: rect)
+            context.cgContext.restoreGState()
+        }.withRenderingMode(.alwaysOriginal)
+    }
+}

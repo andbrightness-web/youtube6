@@ -34,6 +34,8 @@ final class YT6GuideViewController: UITableViewController {
         if signedIn, accountDisclosed {
             account += YT6Section.allCases.filter(\.needsAccount).map(Row.section)
         }
+        // Saved videos play without an account and without a network.
+        account.append(.section(.downloads))
         return [
             (YT6.string("guide_section.account", fallback: "ACCOUNT"), account),
             (nil, [Row.section(.whatToWatch), .section(.subscriptions)] + channelRows),

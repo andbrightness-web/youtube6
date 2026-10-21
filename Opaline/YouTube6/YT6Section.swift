@@ -21,6 +21,9 @@ enum YT6Section: Int, CaseIterable {
     case sports = 9
     case learning = 10
     case fashion = 11
+    /// Downloads (REQUEST711): 2.0.0 had none; Opaline's downloads, shown
+    /// as a 2013 list in the account group.
+    case downloads = 12
 
     private struct Info {
         let key: String
@@ -71,15 +74,17 @@ enum YT6Section: Int, CaseIterable {
             destination: BrowseID.learningDestination
         ),
         // 2.0.0's "Howto & Style" icon.
-        Info("home.category.fashion", "howto_guide", destination: BrowseID.fashionDestination)
+        Info("home.category.fashion", "howto_guide", destination: BrowseID.fashionDestination),
+        Info("", "Downloads", "downloads_guide", account: false)
     ]
 
     private var info: Info { Self.table[rawValue] }
 
     var title: String {
-        if self == .liked {
+        if self == .liked || self == .downloads {
+            let russian = self == .liked ? "Понравившиеся" : "Загрузки"
             return Locale.preferredLanguages.first?.hasPrefix("ru") == true
-                ? "Понравившиеся"
+                ? russian
                 : info.fallback
         }
         if info.browseId != nil {
@@ -115,6 +120,8 @@ enum YT6Section: Int, CaseIterable {
             )
         case .watchLater, .liked:
             return makePlaylist(dependencies)
+        case .downloads:
+            return DownloadsViewController(channelViewControllerFactory: channels)
         }
     }
 

@@ -80,3 +80,5 @@ PlayerLibResources.bundle/overlay_previous_fullscreen
 PlayerLibResources.bundle/overlay_previous_fullscreen_disabled
 PlayerLibResources.bundle/overlay_next_fullscreen
 PlayerLibResources.bundle/overlay_next_fullscreen_disabled
+YouTubeResources.bundle/uploads_guide
+YouTubeResources.bundle/uploads_guide_selected

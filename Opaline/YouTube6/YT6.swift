@@ -97,7 +97,10 @@ enum YT6 {
 
     /// A donor image as shipped (`yt6_<name>.png`), drawn as is.
     static func image(_ name: String) -> UIImage? {
-        UIImage(named: "yt6_" + name)?.withRenderingMode(.alwaysOriginal)
+        if name.hasPrefix("downloads_guide") {
+            return downloadsGuideIcon(selected: name.hasSuffix("_selected"))
+        }
+        return UIImage(named: "yt6_" + name)?.withRenderingMode(.alwaysOriginal)
     }
 
     /// `+[YTResources imageNamed:stretchable:selected:]` @7006: stretchable

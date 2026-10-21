@@ -61,7 +61,10 @@ enum DownloadMenu {
         anchor: UIView,
         titleKey: String
     ) -> PlayerMenuItem {
-        PlayerMenuItem(title: titleKey.localized, iconName: "icon_download") {
+        let title = YT6.isEnabled && titleKey == "player.action.download"
+            ? YT6.saveToDeviceTitle
+            : titleKey.localized
+        return PlayerMenuItem(title: title, iconName: "icon_download") {
             promptQuality(for: video, from: presenter, anchor: anchor)
         }
     }
