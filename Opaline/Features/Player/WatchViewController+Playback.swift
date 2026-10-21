@@ -58,6 +58,7 @@ extension WatchViewController {
         if YT6.isEnabled {
             pv.isHidden = false
             YT6Speed.shared.watch(player: player, layer: pv.playerLayer)
+            YT6SourceBadge.follow(player, in: pv)
         }
         // Start as soon as the first frames are decodable instead of
         // waiting for the stall-minimizing buffer to fill.
@@ -76,8 +77,9 @@ extension WatchViewController {
         player.replaceCurrentItem(with: item)
         // The duration KVO binds player.currentItem — rebind after the swap.
         videoPlayerView?.rebind(player: player)
-        if YT6.isEnabled {
-            videoPlayerView?.isHidden = false
+        if YT6.isEnabled, let view = videoPlayerView {
+            view.isHidden = false
+            YT6SourceBadge.follow(player, in: view)
         }
         player.play()
     }
@@ -109,6 +111,9 @@ extension WatchViewController {
         )
         fresh.seek(to: position)
         playerView.replacePlayer(fresh)
+        if YT6.isEnabled {
+            YT6SourceBadge.follow(fresh, in: playerView)
+        }
         NowPlayingService.shared.rebindPlayer(fresh)
         AppLog.player("player rebuilt to restore PiP")
         if wasPlaying {

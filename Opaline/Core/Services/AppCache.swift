@@ -13,7 +13,27 @@ final class AppCache {
     }
 
     // MARK: - Type Properties
-    static let shared = AppCache()
+    /// youtube6: every source mode keeps its own feeds, so «andCast only»
+    /// never shows YouTube's cached rows nor overwrites them (REQUEST727).
+    static var shared: AppCache {
+        guard YT6.isEnabled else {
+            return youtube
+        }
+        switch YT6Source.mode {
+        case .youtubeAndCast:
+            return youtube
+        case .andCastOnly:
+            return andCast
+        case .downloadedOnly:
+            return offline
+        }
+    }
+
+    /// The YouTube mode's feeds, which «Downloaded only» reads its
+    /// History from.
+    static let youtube = AppCache()
+    private static let andCast = AppCache(folder: "FeedCache-andCast")
+    private static let offline = AppCache(folder: "FeedCache-offline")
 
     /// How stale a cached feed must be before a screen (or the background
     /// refresh) is allowed to revalidate it over the network. Shared by
@@ -52,14 +72,17 @@ final class AppCache {
     private var watchPages: [String: TimedWatchPage] = [:]
     private var channelPages: [String: ChannelPage] = [:]
     var channelInfoMemory: [String: ChannelInfo] = [:]
+    private let folder: String
 
     private var cacheDir: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("FeedCache", isDirectory: true)
+            .appendingPathComponent(folder, isDirectory: true)
     }
 
     // MARK: - Initializer
-    private init() {}
+    private init(folder: String = "FeedCache") {
+        self.folder = folder
+    }
 
     // MARK: - Disk Helpers
     func deliverOnMain<T>(_ value: T, completion: @escaping (T) -> Void) {

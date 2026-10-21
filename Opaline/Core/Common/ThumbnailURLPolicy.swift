@@ -217,7 +217,7 @@ struct ThumbnailRequest {
             videoId: videoId
         )
         candidates = YT6.isEnabled
-            ? YT6AndCastGate.thumbnailCandidates(for: url, youtube: youtube)
+            ? YT6AndCastGate.thumbnailCandidates(for: url, videoId: videoId, youtube: youtube)
             : youtube
         self.maxPixelSize = size
     }

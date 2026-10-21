@@ -38,7 +38,7 @@ enum ServiceContainer {
     static var feed: FeedService { yt6Pick(client as FeedService) }
     static var history: HistoryService { yt6Pick(client as HistoryService) }
     static var search: SearchService { yt6Pick(client as SearchService) }
-    static var playlists: PlaylistService { client }
+    static var playlists: PlaylistService { yt6Pick(client as PlaylistService) }
     static var channel: ChannelService { yt6Pick(client as ChannelService) }
     static var channelTabs: ChannelTabService { yt6Pick(client as ChannelTabService) }
     static var subscribedChannels: SubscribedChannelsService {
@@ -47,7 +47,7 @@ enum ServiceContainer {
     /// Wrapped so a downloaded video keeps its page when the network is
     /// gone; online it is the plain client.
     static var watch: WatchService {
-        guard YT6.isEnabled, YT6Source.mode == .andCastOnly else {
+        guard YT6.isEnabled, YT6Source.mode != .downloadedOnly else {
             return offlineWatch
         }
         return YT6Library.shared

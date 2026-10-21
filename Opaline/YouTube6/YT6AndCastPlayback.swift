@@ -1,43 +1,73 @@
+import AVFoundation
 import Foundation
+import VideoToolbox
 
 /// The andCast client's stream negotiation (`ACClient.m`
 /// `preparePlayback:audio:position:forceHLS:`, `+deviceProfile`,
 /// `+playbackChoice:`, `+mediaURL:server:`, `streamFor:source:`), ported.
 enum YT6AndCastPlayback {
     struct Stream {
-        let url: URL
+        var url: URL
         let method: String
         let session: String
+        /// Sent with every media request (the prepared copy wants the token
+        /// as `X-Emby-Token`; Jellyfin's URLs carry it themselves).
+        var headers: [String: String] = [:]
+        /// The source file's height; `tier` the transcode tier asked for
+        /// (nil: the original or the prepared copy).
+        var height: Int?
+        var tier: Int?
         var isTranscode: Bool { method == "HLS" }
+
+        var asset: AVURLAsset {
+            let options = headers.isEmpty ? nil : ["AVURLAssetHTTPHeaderFieldsKey": headers]
+            return AVURLAsset(url: url, options: options)
+        }
+    }
+
+    private static let transcoding: [String: Any] = [
+        "Type": "Video", "Container": "ts", "Protocol": "hls", "VideoCodec": "h264",
+        "AudioCodec": "aac", "MaxAudioChannels": "2", "MinSegments": 1,
+        "SegmentLength": 6, "BreakOnNonKeyFrames": false
+    ]
+
+    /// What the iPod decodes in hardware, as the andCast iPhone/TV client
+    /// asks (`VTIsHardwareDecodeSupported`): H.264, and HEVC where there is
+    /// a decoder (A9 and later). AV1 and VP9 never — those the server
+    /// converts.
+    static var videoCodecs: String {
+        VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC) ? "h264,hevc" : "h264"
     }
 
     /// `+[ACClient deviceProfile]`: a conservative AVPlayer profile — H.264
-    /// up to 1080p level 4.1, 8 bit, AAC/MP3 stereo; HLS/TS transcode for
-    /// the rest. Never claims AV1/VP9/HEVC.
-    static var deviceProfile: [String: Any] {
-        let video: [[String: Any]] = [
-            condition("LessThanEqual", "Width", "1920"),
-            condition("LessThanEqual", "Height", "1080"),
+    /// (and HEVC where decoded) up to 1080p, 8 bit, AAC/MP3 stereo; HLS/TS
+    /// transcode for the rest. Never claims AV1/VP9. With a `tier` the size
+    /// and bitrate conditions are that tier's: Jellyfin's StreamBuilder
+    /// applies them to the transcode too, so a 1080p AV1 source no longer
+    /// comes as 1080p at 6.3 Mbit/s (measured 21.10, REQUEST733).
+    static func deviceProfile(tier: Int?) -> [String: Any] {
+        let height = tier ?? 1_080
+        var video: [[String: Any]] = [
+            condition("LessThanEqual", "Width", "\(width(of: height))"),
+            condition("LessThanEqual", "Height", "\(height)"),
             condition("LessThanEqual", "VideoBitDepth", "8"),
-            condition("LessThanEqual", "VideoLevel", "41"),
+            // The A10 decodes High@4.2 (1080p60); 4.1 sent those to the transcoder.
+            condition("LessThanEqual", "VideoLevel", "42"),
             condition("EqualsAny", "VideoProfile", "baseline|constrained baseline|main|high")
         ]
+        if tier != nil {
+            video.append(condition("LessThanEqual", "VideoBitrate", "\(bitrate(tier))"))
+        }
         return [
             "Name": "andCast iOS 12",
-            "MaxStreamingBitrate": 40_000_000,
+            "MaxStreamingBitrate": bitrate(tier),
             "DirectPlayProfiles": [
                 [
                     "Type": "Video", "Container": "mp4,m4v,mov",
-                    "VideoCodec": "h264", "AudioCodec": "aac,mp3"
+                    "VideoCodec": videoCodecs, "AudioCodec": "aac,mp3"
                 ]
             ],
-            "TranscodingProfiles": [
-                [
-                    "Type": "Video", "Container": "ts", "Protocol": "hls", "VideoCodec": "h264",
-                    "AudioCodec": "aac", "MaxAudioChannels": "2", "MinSegments": 1,
-                    "SegmentLength": 6, "BreakOnNonKeyFrames": false
-                ]
-            ],
+            "TranscodingProfiles": [transcoding],
             "CodecProfiles": [
                 ["Type": "Video", "Codec": "h264", "Conditions": video],
                 [
@@ -56,22 +86,30 @@ enum YT6AndCastPlayback {
         ["Condition": kind, "Property": property, "Value": value, "IsRequired": true]
     }
 
-    static func resolve(
+    private static func playbackBody(user: String, tier: Int?) -> [String: Any] {
+        [
+            "UserId": user, "DeviceProfile": deviceProfile(tier: tier),
+            "MaxStreamingBitrate": bitrate(tier), "MaxAudioChannels": 2,
+            "EnableDirectPlay": tier == nil, "EnableDirectStream": tier == nil,
+            "EnableTranscoding": true,
+            "AllowVideoStreamCopy": true, "AllowAudioStreamCopy": true, "AutoOpenLiveStream": false
+        ]
+    }
+
+    /// `PlaybackInfo`; `tier` (a height) asks Jellyfin for a transcode at
+    /// that tier's bitrate instead of the best the iPod can take.
+    static func negotiate(
         item: String,
         base: URL,
+        tier: Int?,
         completion: @escaping (Result<Stream, Error>) -> Void
     ) {
         guard let session = YT6AndCast.session else {
             completion(.failure(YT6AndCastError.unavailable("not signed in")))
             return
         }
-        let body: [String: Any] = [
-            "UserId": session.userID, "DeviceProfile": deviceProfile,
-            "MaxStreamingBitrate": 40_000_000, "MaxAudioChannels": 2,
-            "EnableDirectPlay": true, "EnableDirectStream": true, "EnableTranscoding": true,
-            "AllowVideoStreamCopy": true, "AllowAudioStreamCopy": true, "AutoOpenLiveStream": false
-        ]
         let path = "Items/\(item)/PlaybackInfo"
+        let body = playbackBody(user: session.userID, tier: tier)
         guard var request = YT6AndCast.jellyfin(path, base: base, body: body) else {
             completion(.failure(YT6AndCastError.unavailable("bad address")))
             return
@@ -80,9 +118,20 @@ enum YT6AndCastPlayback {
         YT6AndCast.perform(request) { result in
             completion(result.flatMap { data in
                 let body = YT6AndCast.json(data) ?? [:]
-                return stream(from: body, item: item, base: base, token: session.token)
+                let found = stream(from: body, item: item, base: base, token: session.token)
+                return found.map { at($0, tier: tier) }
             })
         }
+    }
+
+    /// The stream marked with its tier, a transcode capped to it.
+    private static func at(_ found: Stream, tier: Int?) -> Stream {
+        var chosen = found
+        chosen.tier = tier
+        if let tier, chosen.isTranscode {
+            chosen.url = capped(chosen.url, tier: tier)
+        }
+        return chosen
     }
 
     /// `+playbackChoice:`: the first direct-playable source, else the first
@@ -101,15 +150,20 @@ enum YT6AndCastPlayback {
                   source["RequiresOpening"] as? Bool != true else {
                 continue
             }
+            let height = height(of: source)
             if source["SupportsDirectPlay"] as? Bool == true,
                let url = direct(item, sid, base, token) {
-                return .success(Stream(url: url, method: "Direct play", session: session))
+                let plain = Stream(
+                    url: url, method: "Direct play", session: session, height: height
+                )
+                return .success(plain)
             }
             let hls = source["SupportsTranscoding"] as? Bool == true
                 || source["SupportsDirectStream"] as? Bool == true
             if hls, fallback == nil, let path = source["TranscodingUrl"] as? String,
                let url = mediaURL(path, base: base) {
-                fallback = Stream(url: url, method: "HLS", session: session)
+                fallback = Stream(url: url, method: "HLS", session: session, height: height)
+                YT6AndCast.log("play \(item): Jellyfin converts — \(why(source, path: path))")
             }
         }
         guard let fallback else {
@@ -159,6 +213,20 @@ enum YT6AndCastPlayback {
             return nil
         }
         return target
+    }
+
+    /// Why there is no direct play: the source's container and codecs and
+    /// Jellyfin's `TranscodeReasons` (read off the URL; nothing else of it
+    /// is logged).
+    private static func why(_ source: [String: Any], path: String) -> String {
+        let streams = source["MediaStreams"] as? [[String: Any]] ?? []
+        let codec = { (kind: String) in
+            streams.first { $0["Type"] as? String == kind }?["Codec"] as? String ?? "?"
+        }
+        let reasons = URLComponents(string: path)?.queryItems?
+            .first { $0.name == "TranscodeReasons" }?.value ?? "none given"
+        let container = source["Container"] as? String ?? "?"
+        return "\(container) \(codec("Video"))/\(codec("Audio")), reasons \(reasons)"
     }
 
     /// `stopEncoding:` — `DELETE Videos/ActiveEncodings`.

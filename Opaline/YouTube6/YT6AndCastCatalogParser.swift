@@ -43,7 +43,15 @@ enum YT6AndCastCatalogParser {
             items = changed
         }
         items.sort { ($0.date ?? 0) > ($1.date ?? 0) }
-        return Store(account: account, revision: revision, items: items, channels: channels)
+        let playlists = (body["playlists"] as? [[String: Any]] ?? []).compactMap(playlist)
+        return Store(
+            version: Store.currentVersion,
+            account: account,
+            revision: revision,
+            items: items,
+            channels: channels,
+            playlists: playlists
+        )
     }
 
     private static func item(_ raw: [String: Any], channels: Set<String>) -> Item? {
@@ -67,6 +75,15 @@ enum YT6AndCastCatalogParser {
         )
     }
 
+    private static func playlist(_ raw: [String: Any]) -> YT6AndCastPlaylist? {
+        guard let id = raw["Id"] as? String, let title = raw["Name"] as? String,
+              let items = raw["Items"] as? [String], !items.isEmpty else {
+            return nil
+        }
+        let channel = raw["ChannelId"] as? String
+        return YT6AndCastPlaylist(id: id, title: title, items: items, channelId: channel)
+    }
+
     private static func channel(_ raw: [String: Any]) -> Channel? {
         guard let id = raw["Id"] as? String, let title = raw["Name"] as? String else {
             return nil
@@ -75,7 +92,10 @@ enum YT6AndCastCatalogParser {
             id: id,
             title: title,
             artwork: raw["ArtworkRevision"] as? String,
-            youtubeId: youtubeChannel(raw["ChannelURL"] as? String)
+            youtubeId: youtubeChannel(raw["ChannelURL"] as? String),
+            visible: raw["SubscriptionsVisible"] as? Bool ?? true,
+            overview: raw["Overview"] as? String,
+            url: raw["ChannelURL"] as? String
         )
     }
 

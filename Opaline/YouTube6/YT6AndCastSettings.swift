@@ -75,11 +75,26 @@ enum YT6AndCastSettings {
     private static func libraryRow(_ host: YT6SettingsViewController) -> YT6SettingsRow {
         let catalog = YT6AndCastCatalog.shared
         let count = catalog.items.count
-        let detail = catalog.isSyncing ? "Syncing…" : count > 0 ? "\(count) videos" : "Not synced"
-        return YT6SettingsRow(title: "Library", detail: detail) { [weak host] in
-            catalog.sync()
+        return YT6SettingsRow(title: "Library", detail: syncState(count: count)) { [weak host] in
+            catalog.refreshNow()
             host?.reload()
         }
+    }
+
+    /// The andCast client's sync words: its phase while it runs, the
+    /// server's scan, a failed check, else the count.
+    static func syncState(count: Int) -> String {
+        let catalog = YT6AndCastCatalog.shared
+        if let phase = catalog.phase {
+            return phase
+        }
+        if catalog.serverRefreshing {
+            return "Checking for new videos…"
+        }
+        if catalog.lastError != nil {
+            return count > 0 ? "\(count) videos · sync failed" : "Sync failed · tap to retry"
+        }
+        return count > 0 ? "\(count) videos" : "Not synced"
     }
 
     // MARK: Actions

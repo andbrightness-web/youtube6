@@ -7,9 +7,10 @@ import UIKit
 /// pings playback and watchtime with position, pauses and end — so a video
 /// whose media comes from andCast reports exactly like a YouTube one.
 ///
-/// «andCast only» / «Downloaded only» ask nothing of YouTube: what was
-/// watched (video, watched ranges, when) is kept on the iPod and sent once
-/// the app is back in «YouTube + andCast». Tracking URLs expire, so old
+/// «andCast only» reports to YouTube the same way when YouTube answers
+/// (REQUEST727 allows YouTube's metadata there). When it does not, and in
+/// «Downloaded only», what was watched (video, watched ranges, when) is
+/// kept on the iPod and sent once YouTube can be reached again. Tracking URLs expire, so old
 /// pings cannot be replayed honestly; fresh ones are fetched then, and the
 /// video goes to the account's watch history at that moment with its
 /// watched ranges (yt-dlp `--mark-watched`'s method). andCast's own journal
@@ -50,6 +51,9 @@ final class YT6AndCastStats {
 
     var pendingCount: Int { pending.count }
 
+    /// The playback being watched now, for `YT6AndCastUpgrade`.
+    var currentFacade: PlaybackFacade? { facade }
+
     private init() {
         if let left = Self.read(Self.inflightKey, as: Watch.self) {
             UserDefaults.standard.removeObject(forKey: Self.inflightKey)
@@ -84,6 +88,8 @@ final class YT6AndCastStats {
             duration: 0,
             tries: 0
         )
+        // «andCast only» tries YouTube first and keeps the watch only if it
+        // does not answer (`youtubeAnswered`); offline always keeps it.
         keepForYouTube = YT6Source.isLocal
         self.facade = facade
         timer = Timer.scheduledTimer(
@@ -91,7 +97,7 @@ final class YT6AndCastStats {
         ) { [weak self] _ in
             self?.sample()
         }
-        if keepForYouTube {
+        if YT6Source.mode == .downloadedOnly {
             YT6AndCast.log("stats: \(YT6Source.mode.title), \(videoId) kept for YouTube")
             return true
         }
@@ -100,6 +106,21 @@ final class YT6AndCastStats {
         }
         flushPending()
         return false
+    }
+
+    /// From the library's `fetchWatchtimeURLs` in «andCast only».
+    func youtubeAnswered(videoId: String, reached: Bool) {
+        DispatchQueue.main.async {
+            guard self.current?.videoId == videoId else {
+                return
+            }
+            self.keepForYouTube = !reached
+            let how = reached ? "YouTube watchtime runs" : "YouTube unreachable, kept for later"
+            YT6AndCast.log("stats: \(videoId) \(how)")
+            if reached {
+                self.flushPending()
+            }
+        }
     }
 
     private func sample() {
@@ -160,7 +181,7 @@ final class YT6AndCastStats {
 
     /// One kept watch at a time, while the app talks to YouTube.
     func flushPending() {
-        guard !flushing, YT6Source.mode == .youtubeAndCast, OAuthClient.shared.isSignedIn,
+        guard !flushing, YT6Source.mode != .downloadedOnly, OAuthClient.shared.isSignedIn,
               let first = pending.first else {
             return
         }

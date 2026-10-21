@@ -78,6 +78,7 @@ final class YT6VideoListCell: UITableViewCell {
         if let url = URL(string: video.thumbnailURL) {
             thumbnail.setImage(url: url, videoId: video.isShort ? nil : video.id)
         }
+        YT6SourceBadge.markRow(thumbnail, videoId: video.id)
         setNeedsLayout()
     }
 

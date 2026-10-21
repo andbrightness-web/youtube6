@@ -2,7 +2,7 @@ import Foundation
 
 /// A catalog item as the app's `Video`: the server's artwork for the
 /// thumbnail and the channel avatar, the catalog's title, channel, date and
-/// length. andCast keeps no view counts in the catalog.
+/// length, the views of the server's stats base (`/v1/stats`).
 enum YT6LibraryVideo {
     private static let clock: DateComponentsFormatter = {
         let format = DateComponentsFormatter()
@@ -12,14 +12,13 @@ enum YT6LibraryVideo {
         return format
     }()
 
-    private static let age: DateComponentsFormatter = {
-        let format = DateComponentsFormatter()
-        format.allowedUnits = [.year, .month, .weekOfMonth, .day, .hour, .minute]
-        format.maximumUnitCount = 1
-        format.unitsStyle = .full
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale(identifier: "en_US")
-        format.calendar = calendar
+    /// The rows format the date themselves (`VideoFormatters.formatRelativeDate`
+    /// reads `yyyy-MM-dd'T'HH:mm:ssZ`).
+    private static let iso: DateFormatter = {
+        let format = DateFormatter()
+        format.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        format.locale = Locale(identifier: "en_US_POSIX")
+        format.timeZone = TimeZone(identifier: "UTC")
         return format
     }()
 
@@ -33,8 +32,8 @@ enum YT6LibraryVideo {
             channelName: channel?.title ?? "",
             channelAvatarURL: avatar,
             thumbnailURL: YT6AndCast.artworkURL(item.id, revision: item.artwork) ?? "",
-            viewCount: nil,
-            publishedAt: published(item.date),
+            viewCount: YT6AndCastNumbers.viewsText(YT6AndCastNumbers.shared.views(item: item.id)),
+            publishedAt: item.date.map { iso.string(from: Date(timeIntervalSince1970: $0)) },
             duration: duration(item.seconds)
         )
     }
@@ -52,17 +51,5 @@ enum YT6LibraryVideo {
             text.removeFirst()
         }
         return text
-    }
-
-    /// "3 weeks ago".
-    static func published(_ date: Double?) -> String? {
-        guard let date else {
-            return nil
-        }
-        let seconds = Date().timeIntervalSince1970 - date
-        guard seconds > 60, let text = age.string(from: seconds) else {
-            return nil
-        }
-        return text + " ago"
     }
 }

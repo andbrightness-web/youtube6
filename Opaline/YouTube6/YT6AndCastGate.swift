@@ -5,10 +5,13 @@ import Foundation
 /// - andCast addresses get the token header and are moved to whichever
 ///   address answers now (artwork URLs are written with the server's
 ///   canonical one).
-/// - «andCast only» lets nothing else out: no Innertube, no googlevideo,
-///   no ytimg (REQUEST724). «Downloaded only» lets nothing out at all.
-///   Refused requests fail as "not connected", which Opaline already
-///   handles as offline.
+/// - «andCast only» (as the owner set it, REQUEST727): the video comes
+///   from andCast only, so no googlevideo media and no channel RSS polls;
+///   YouTube's metadata (Innertube, ytimg, avatars, watchtime) may be
+///   asked, and the screens fall back to the andCast base when it fails.
+/// - «Downloaded only» lets nothing out at all.
+/// Refused requests fail as "not connected", which Opaline already
+/// handles as offline.
 enum YT6AndCastGate {
     private static var refusedHosts = Set<String>()
     private static let lock = NSLock()
@@ -23,38 +26,56 @@ enum YT6AndCastGate {
             sign(&request)
             return nil
         }
-        guard mode != .youtubeAndCast else {
+        guard mode == .downloadedOnly || isMedia(request.url, host: host) else {
             return nil
         }
         noteRefused(host, mode: mode)
         return APIError.transport(URLError(.notConnectedToInternet))
     }
 
-    /// Thumbnail candidates: the server's artwork first for a video it
-    /// has; in the local modes only that.
-    static func thumbnailCandidates(for url: URL, youtube: [URL]) -> [URL] {
-        let mode = YT6Source.mode
-        guard mode != .downloadedOnly,
-              let art = artwork(forThumbnail: url),
-              mode == .andCastOnly || YT6AndCastReach.base != nil else {
-            return youtube
-        }
-        return mode == .andCastOnly ? [art] : [art] + youtube
+    /// Media bytes from YouTube, which «andCast only» never plays.
+    private static func isMedia(_ url: URL, host: String) -> Bool {
+        host.hasSuffix("googlevideo.com") || url.path.hasPrefix("/videoplayback")
+            || url.path.hasPrefix("/feeds/videos.xml")
     }
 
-    /// `i.ytimg.com/vi/<id>/…` of a video on the server → its artwork.
-    private static func artwork(forThumbnail url: URL) -> URL? {
+    /// Thumbnail candidates: the server's artwork first for a video the
+    /// server has, in every mode — it is the same picture, nearer, and
+    /// stays in the image cache — YouTube's files after it.
+    static func thumbnailCandidates(
+        for url: URL,
+        videoId: String?,
+        youtube: [URL]
+    ) -> [URL] {
+        let own = url.host.map(YT6AndCast.isOwnHost) == true ? url : nil
+        // A server that does not answer would only cost a timeout first.
+        let reachable = YT6AndCastReach.base != nil || YT6Source.mode == .downloadedOnly
+        let found = reachable ? artwork(videoId: videoId ?? youtubeVideo(in: url)) : nil
+        guard let art = own ?? found else {
+            return youtube
+        }
+        return [art] + youtube.filter { $0 != art }
+    }
+
+    static func artwork(videoId: String?) -> URL? {
+        guard let videoId, let item = YT6AndCastCatalog.shared.item(videoId: videoId),
+              let art = YT6AndCast.artworkURL(item.id, revision: item.artwork) else {
+            return nil
+        }
+        return URL(string: art)
+    }
+
+    /// `i.ytimg.com/vi/<id>/…` → `<id>`.
+    private static func youtubeVideo(in url: URL) -> String? {
         guard url.host?.hasSuffix("ytimg.com") == true else {
             return nil
         }
         let parts = url.pathComponents
         guard let index = parts.firstIndex(where: { $0 == "vi" || $0 == "vi_webp" }),
-              index + 1 < parts.count,
-              let item = YT6AndCastCatalog.shared.item(videoId: parts[index + 1]),
-              let art = YT6AndCast.artworkURL(item.id, revision: item.artwork) else {
+              index + 1 < parts.count else {
             return nil
         }
-        return URL(string: art)
+        return parts[index + 1]
     }
 
     private static func sign(_ request: inout HTTPRequest) {
