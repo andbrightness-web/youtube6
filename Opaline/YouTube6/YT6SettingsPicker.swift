@@ -145,12 +145,13 @@ enum YT6SettingsPicker {
 
     private static func isChecked(_ action: UIAlertAction) -> Bool {
         // The selectors and ivars key-value coding looks up for "checked".
-        let hasKey = ["checked", "isChecked", "_checked"].contains {
-            action.responds(to: NSSelectorFromString($0))
-        } || ["_checked", "_isChecked"].contains {
-            class_getInstanceVariable(UIAlertAction.self, $0) != nil
+        let selectors = ["checked", "isChecked", "_checked"]
+        let ivars = ["_checked", "_isChecked"]
+        let hasMethod = selectors.contains { action.responds(to: NSSelectorFromString($0)) }
+        let hasIvar = ivars.contains { name in
+            name.withCString { class_getInstanceVariable(UIAlertAction.self, $0) != nil }
         }
-        guard hasKey else {
+        guard hasMethod || hasIvar else {
             return false
         }
         return action.value(forKey: "checked") as? Bool ?? false
