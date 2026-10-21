@@ -80,6 +80,11 @@ final class URLSessionTransport: HTTPTransport {
         onChunk: @escaping (Data) -> Bool,
         completion: @escaping (Result<HTTPResponse, Error>) -> Void
     ) {
+        var request = request
+        if YT6.isEnabled, let refused = YT6AndCastGate.admit(&request) {
+            completion(.failure(refused))
+            return
+        }
         streaming.start(
             urlRequest(for: request),
             cancellationToken: cancellationToken,
@@ -107,6 +112,11 @@ final class URLSessionTransport: HTTPTransport {
         cancellationToken: CancellationToken?,
         completion: @escaping (Result<HTTPResponse, Error>) -> Void
     ) {
+        var request = request
+        if YT6.isEnabled, let refused = YT6AndCastGate.admit(&request) {
+            completion(.failure(refused))
+            return
+        }
         var urlRequest = URLRequest(url: request.url)
         urlRequest.httpMethod = request.method.rawValue
         urlRequest.httpBody = request.body

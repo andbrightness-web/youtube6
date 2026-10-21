@@ -31,20 +31,29 @@ enum ServiceContainer {
 
     // Single InnertubeClient instance shared across all service protocols.
     // Each property is typed to the narrowest protocol the caller needs — DIP in action.
-    private static let client = InnertubeClient(transport: transport)
+    /// youtube6 reads it too: `YT6Library` hands calls back to it when a
+    /// screen that kept the library outlives «andCast only».
+    static let client = InnertubeClient(transport: transport)
 
-    static var feed: FeedService { client }
-    static var history: HistoryService { client }
-    static var search: SearchService { client }
+    static var feed: FeedService { yt6Pick(client as FeedService) }
+    static var history: HistoryService { yt6Pick(client as HistoryService) }
+    static var search: SearchService { yt6Pick(client as SearchService) }
     static var playlists: PlaylistService { client }
-    static var channel: ChannelService { client }
-    static var channelTabs: ChannelTabService { client }
-    static var subscribedChannels: SubscribedChannelsService { client }
+    static var channel: ChannelService { yt6Pick(client as ChannelService) }
+    static var channelTabs: ChannelTabService { yt6Pick(client as ChannelTabService) }
+    static var subscribedChannels: SubscribedChannelsService {
+        yt6Pick(client as SubscribedChannelsService)
+    }
     /// Wrapped so a downloaded video keeps its page when the network is
     /// gone; online it is the plain client.
-    static var watch: WatchService { offlineWatch }
+    static var watch: WatchService {
+        guard YT6.isEnabled, YT6Source.mode == .andCastOnly else {
+            return offlineWatch
+        }
+        return YT6Library.shared
+    }
 
-    private static let offlineWatch = OfflineWatchService(wrapping: client)
+    static let offlineWatch = OfflineWatchService(wrapping: client)
     static var engagement: EngagementService { client }
     static var account: AccountService { client }
     static var shorts: ShortsService { client }

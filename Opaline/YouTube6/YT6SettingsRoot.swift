@@ -62,6 +62,7 @@ enum YT6SettingsRoot {
             ),
             sponsorBlockSection(host),
             YT6SettingsDownloads.section(host),
+            YT6AndCastSettings.section(host),
             cacheSection(host),
             aboutSection(host)
         ]

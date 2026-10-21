@@ -211,11 +211,14 @@ struct ThumbnailRequest {
             max(maxPixelSize, 1),
             ThumbnailSizing.maximumPixelSize
         )
-        candidates = ThumbnailURLPolicy.candidates(
+        let youtube = ThumbnailURLPolicy.candidates(
             for: url,
             pixelSize: size,
             videoId: videoId
         )
+        candidates = YT6.isEnabled
+            ? YT6AndCastGate.thumbnailCandidates(for: url, youtube: youtube)
+            : youtube
         self.maxPixelSize = size
     }
 

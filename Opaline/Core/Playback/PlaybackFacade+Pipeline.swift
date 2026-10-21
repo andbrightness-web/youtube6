@@ -9,6 +9,9 @@ extension PlaybackFacade {
         else {
             return
         }
+        if YT6.isEnabled, YT6AndCastStats.shared.begin(self) {
+            return
+        }
         apiClient.fetchWatchtimeURLs(
             videoId: videoId
         ) { [weak self] urls in

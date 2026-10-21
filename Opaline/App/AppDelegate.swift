@@ -115,6 +115,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if ReturnYouTubeDislikeService.enabled {
             ReturnYouTubeDislikeService.shared.prepareIfNeeded()
         }
+        if YT6.isEnabled {
+            YT6AndCast.start()
+        }
         if UserDefaults.standard.bool(forKey: UserDefaultsKeys.Debug.mainThreadWatchdog) {
             startMainThreadWatchdog()
         }
