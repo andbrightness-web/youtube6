@@ -31,7 +31,9 @@ enum ServiceContainer {
 
     // Single InnertubeClient instance shared across all service protocols.
     // Each property is typed to the narrowest protocol the caller needs — DIP in action.
-    private static let client = InnertubeClient(transport: transport)
+    /// youtube6 reads it too: `YT6Library` hands calls back to it when a
+    /// screen that kept the library outlives «andCast only».
+    static let client = InnertubeClient(transport: transport)
 
     static var feed: FeedService { yt6Pick(client as FeedService) }
     static var history: HistoryService { yt6Pick(client as HistoryService) }
@@ -51,7 +53,7 @@ enum ServiceContainer {
         return YT6Library.shared
     }
 
-    private static let offlineWatch = OfflineWatchService(wrapping: client)
+    static let offlineWatch = OfflineWatchService(wrapping: client)
     static var engagement: EngagementService { client }
     static var account: AccountService { client }
     static var shorts: ShortsService { client }

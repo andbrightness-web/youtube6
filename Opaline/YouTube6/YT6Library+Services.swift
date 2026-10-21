@@ -5,11 +5,21 @@ import Foundation
 extension YT6Library: FeedService, HistoryService, SearchService, SubscribedChannelsService {
     typealias PageReply = (Result<FeedPage, Error>) -> Void
 
+    /// Something that kept this object (background refresh, the
+    /// downloader) asks while the app is back on YouTube.
+    private var youtube: InnertubeClient? {
+        YT6Source.mode == .youtubeAndCast ? ServiceContainer.client : nil
+    }
+
     private func answer<T>(_ value: T, _ completion: @escaping (Result<T, Error>) -> Void) {
         DispatchQueue.main.async { completion(.success(value)) }
     }
 
     func fetchHomeFeed(completion: @escaping PageReply) {
+        if let youtube {
+            youtube.fetchHomeFeed(completion: completion)
+            return
+        }
         loadShelf { [weak self] in
             guard let self else {
                 return
@@ -21,24 +31,46 @@ extension YT6Library: FeedService, HistoryService, SearchService, SubscribedChan
     }
 
     func fetchCategoryFeed(browseId: String, completion: @escaping PageReply) {
+        if let youtube {
+            youtube.fetchCategoryFeed(browseId: browseId, completion: completion)
+            return
+        }
         answer(FeedPage(videos: []), completion)
     }
 
     func fetchSubscriptionFeed(completion: @escaping PageReply) {
+        if let youtube {
+            youtube.fetchSubscriptionFeed(completion: completion)
+            return
+        }
         answer(firstPage("all"), completion)
     }
 
     func fetchNextPage(continuation: String, completion: @escaping PageReply) {
+        if let youtube {
+            youtube.fetchNextPage(continuation: continuation, completion: completion)
+            return
+        }
         answer(nextPage(continuation), completion)
     }
 
     func fetchSubscriptionsNextPage(continuation: String, completion: @escaping PageReply) {
+        if let youtube {
+            youtube.fetchSubscriptionsNextPage(
+                continuation: continuation, completion: completion
+            )
+            return
+        }
         answer(nextPage(continuation), completion)
     }
 
     /// `/v1/history` (latest position per video) in «andCast only»; the
     /// saved videos offline.
     func fetchHistory(completion: @escaping PageReply) {
+        if let youtube {
+            youtube.fetchHistory(completion: completion)
+            return
+        }
         guard YT6Source.mode == .andCastOnly else {
             answer(FeedPage(videos: videos), completion)
             return
@@ -56,6 +88,12 @@ extension YT6Library: FeedService, HistoryService, SearchService, SubscribedChan
         token: String,
         completion: @escaping PageReply
     ) {
+        if let youtube {
+            youtube.fetchHistoryNextPage(
+                continuation: continuation, token: token, completion: completion
+            )
+            return
+        }
         answer(FeedPage(videos: []), completion)
     }
 
