@@ -45,6 +45,7 @@ final class YT6SearchKindList: NSObject {
             YT6SearchChannelCell.self, forCellReuseIdentifier: YT6SearchChannelCell.reuseId
         )
         table.isHidden = true
+        table.scrollsToTop = false
     }
 
     func load(query: String) {
