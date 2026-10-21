@@ -21,7 +21,7 @@ extension YT6 {
         let band = CGRect(x: 0, y: 10, width: size.width, height: 10)
         let format = UIGraphicsImageRendererFormat()
         format.scale = uploads.scale
-        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+        let icon = UIGraphicsImageRenderer(size: size, format: format).image { context in
             let rect = CGRect(origin: .zero, size: size)
             context.cgContext.saveGState()
             let below = CGRect(x: 0, y: band.maxY, width: size.width, height: size.height)
@@ -35,6 +35,7 @@ extension YT6 {
             context.cgContext.scaleBy(x: 1, y: -1)
             uploads.draw(in: rect)
             context.cgContext.restoreGState()
-        }.withRenderingMode(.alwaysOriginal)
+        }
+        return icon.withRenderingMode(.alwaysOriginal)
     }
 }

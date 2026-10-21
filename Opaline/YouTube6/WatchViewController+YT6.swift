@@ -737,6 +737,33 @@ extension WatchViewController {
         syncFullscreenWithRotation(isLandscape: view.bounds.width > view.bounds.height)
     }
 
+    /// `YTChannelMetadataCell` @3ce25e: the subscriber count under the
+    /// channel name. The watch page does not always carry it, which left
+    /// the line empty (REQUEST713); the channel's own info (cached by
+    /// `ChannelInfoStore`, the same that brings the avatar) fills it in.
+    func yt6FillSubscribers(channelId: String?) {
+        let shown = channelMetaLabel.text ?? ""
+        guard shown.isEmpty, let channelId, !channelId.isEmpty else {
+            return
+        }
+        let videoId = initialVideo.id
+        channelInfoStore.fetch(channelId: channelId) { [weak self] result in
+            guard case let .success(info) = result,
+                  let count = info.subscriberCountText, !count.isEmpty
+            else {
+                return
+            }
+            DispatchQueue.main.async {
+                guard let self, self.initialVideo.id == videoId,
+                      (self.channelMetaLabel.text ?? "").isEmpty
+                else {
+                    return
+                }
+                self.channelMetaLabel.text = count
+            }
+        }
+    }
+
     /// `overlay_watch_collapse` on the player: back to the collapsed player.
     @objc
     func yt6CollapseTapped() {

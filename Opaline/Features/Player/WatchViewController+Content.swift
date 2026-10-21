@@ -148,6 +148,11 @@ extension WatchViewController {
     }
 
     func applyChannelInfo(from page: WatchPage) {
+        defer {
+            if YT6.isEnabled {
+                yt6FillSubscribers(channelId: page.channelInfo?.id ?? page.video.channelId)
+            }
+        }
         if let channelInfo = page.channelInfo {
             channelNameLabel.text = channelInfo.title.isEmpty
                 ? initialVideo.channelName
