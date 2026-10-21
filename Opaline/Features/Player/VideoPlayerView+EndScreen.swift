@@ -26,6 +26,9 @@ extension VideoPlayerView {
     func updateCenterIcons() {
         updatePlayPauseIcon()
         setEnabled(rewindButton, hasPreviousVideo)
+        if YT6.isEnabled {
+            yt6UpdatePreviousNext()
+        }
     }
 
     private func setEnabled(_ button: UIButton, _ enabled: Bool) {

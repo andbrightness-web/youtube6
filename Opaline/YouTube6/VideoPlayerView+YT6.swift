@@ -13,11 +13,10 @@ extension VideoPlayerView {
     private static let yt6ButtonSize: CGFloat = 29
     private static let yt6Gap: CGFloat = 8
     private static let yt6CollapseTag = 0x7936
+    private static let yt6PreviousNextInset: CGFloat = 16
 
     func yt6RestyleControls() {
-        let extras = [
-            pipButton, speedButton, audioOnlyButton, loopButton, rewindButton, forwardButton
-        ]
+        let extras = [pipButton, speedButton, audioOnlyButton, loopButton]
         extras.forEach { $0.isHidden = true }
         topGradientLayer.isHidden = true
         bottomGradientLayer.isHidden = true
@@ -33,8 +32,26 @@ extension VideoPlayerView {
         ccButton.setImage(YT6.image("player_bar_cc"), for: .normal)
         ccButton.setImage(YT6.image("player_bar_cc_selected"), for: .selected)
         yt6AddCollapseButton()
+        yt6PlacePreviousNext()
         yt6UpdateIcons()
         yt6ActivateBar(bar)
+    }
+
+    /// Upstream's previous/next video buttons hang off the centred play
+    /// button, which the bar has taken: 2.0.0 puts them centred vertically,
+    /// 16 pt in from each side (`-[YTVideoPlayerOverlayView layoutSubviews]`
+    /// @3ba60c/3ba648), at the size of their images.
+    private func yt6PlacePreviousNext() {
+        let buttons = [rewindButton, forwardButton]
+        NSLayoutConstraint.deactivate(buttons.flatMap { button in
+            button.constraints.filter { $0.firstItem === button && $0.secondItem == nil }
+        })
+        let safe = controlsView.safeAreaLayoutGuide
+        let inset = Self.yt6PreviousNextInset
+        NSLayoutConstraint.activate([
+            rewindButton.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: inset),
+            forwardButton.trailingAnchor.constraint(equalTo: safe.trailingAnchor, constant: -inset)
+        ] + buttons.map { $0.centerYAnchor.constraint(equalTo: controlsView.centerYAnchor) })
     }
 
     /// `overlay_watch_collapse` 8 pt in from the top left
@@ -137,5 +154,19 @@ extension VideoPlayerView {
             for: .normal
         )
         controlsView.viewWithTag(Self.yt6CollapseTag)?.isHidden = isFullscreen
+        yt6UpdatePreviousNext()
+    }
+
+    /// `-[YTVideoPlayerOverlayView setVideoButtonsForLayout:]` @3bae84:
+    /// `overlay_previous/next[_fullscreen]`, `_disabled` where there is no
+    /// video that way — the image says it, not upstream's dimming.
+    func yt6UpdatePreviousNext() {
+        let suffix = isFullscreen ? "_fullscreen" : ""
+        let pairs = [(rewindButton, "overlay_previous"), (forwardButton, "overlay_next")]
+        for (button, name) in pairs {
+            button.setImage(YT6.image(name + suffix), for: .normal)
+            button.setImage(YT6.image(name + suffix + "_disabled"), for: .disabled)
+            button.alpha = 1
+        }
     }
 }

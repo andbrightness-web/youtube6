@@ -72,3 +72,11 @@ UILibResources.bundle/subscribe
 UILibResources.bundle/subscribed
 UILibResources.bundle/button_special
 UILibResources.bundle/button_light
+PlayerLibResources.bundle/overlay_previous
+PlayerLibResources.bundle/overlay_previous_disabled
+PlayerLibResources.bundle/overlay_next
+PlayerLibResources.bundle/overlay_next_disabled
+PlayerLibResources.bundle/overlay_previous_fullscreen
+PlayerLibResources.bundle/overlay_previous_fullscreen_disabled
+PlayerLibResources.bundle/overlay_next_fullscreen
+PlayerLibResources.bundle/overlay_next_fullscreen_disabled
