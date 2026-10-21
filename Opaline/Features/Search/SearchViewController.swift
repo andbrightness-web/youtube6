@@ -61,6 +61,7 @@ class SearchViewController: UIViewController {
             name: ThemeManager.didChangeNotification,
             object: nil
         )
+        if YT6.isEnabled { yt6SetUpResultsPage() }
     }
 
     override func viewDidAppear(_ animated: Bool) {

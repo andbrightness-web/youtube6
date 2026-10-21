@@ -87,6 +87,13 @@ UILibResources.bundle/overflow
 UILibResources.bundle/channelbar
 UILibResources.bundle/channel_default_background
 UILibResources.bundle/thumbnail_border
+# Search (agent D)
+YouTubeResources.bundle/search_titlebar
+YouTubeResources.bundle/search_input
+YouTubeResources.bundle/search_hint
+UILibResources.bundle/text_field_clear
+UILibResources.bundle/search_add
+UILibResources.bundle/search_add_selected
 UILibResources.bundle/tab_titles_background
 UILibResources.bundle/tab_titles_button
 UILibResources.bundle/tab_titles_button_selected
@@ -113,3 +120,4 @@ UILibResources.bundle/grouped_table_card_selected
 UILibResources.bundle/checkmark
 UILibResources.bundle/checkmark_selected
 UILibResources.bundle/button_blue
+UILibResources.bundle/settings_button

@@ -42,15 +42,20 @@ enum YT6Chrome {
         if decorate(vc) {
             return true
         }
-        vc.navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(
-                image: YT6.image("search"),
-                style: .plain,
-                target: vc,
-                action: #selector(UIViewController.toolbarOpenSearch)
-            )
-        ]
+        vc.navigationItem.rightBarButtonItems = [searchButton(for: vc)]
         return true
+    }
+
+    /// `navSearchImage` → the 2.0.0 search bar over this screen (`YT6Search`).
+    static func searchButton(for vc: UIViewController) -> UIBarButtonItem {
+        let button = UIBarButtonItem(
+            image: YT6.image("search"),
+            style: .plain,
+            target: vc,
+            action: #selector(UIViewController.yt6OpenSearch)
+        )
+        button.accessibilityLabel = YT6.string("nav_bar.search.access", fallback: "Search")
+        return button
     }
 
     /// Root screens of guide rows: guide button left, search right, and the
@@ -67,14 +72,7 @@ enum YT6Chrome {
             target: YT6GuideActions.shared,
             action: #selector(YT6GuideActions.toggleGuide)
         )
-        vc.navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(
-                image: YT6.image("search"),
-                style: .plain,
-                target: vc,
-                action: #selector(UIViewController.toolbarOpenSearch)
-            )
-        ]
+        vc.navigationItem.rightBarButtonItems = [searchButton(for: vc)]
         // APPROXIMATION: logo as the title of What To Watch, the row title
         // elsewhere — to be checked against 2013 screenshots.
         if section == .whatToWatch, let logo = YT6.image("logo") {
