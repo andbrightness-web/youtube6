@@ -129,7 +129,13 @@ final class YT6OriginalTitles {
 
     /// `GET /oembed`: 200 with `title`; 401/404 for private or removed
     /// videos — the listed title stays then.
+    /// Not in the andCast-only and downloaded-only modes, which ask nothing
+    /// of YouTube; their titles are the server's or the saved copy's.
     private func fetch(_ id: String, completion: @escaping (String?) -> Void) {
+        guard !YT6Source.isLocal else {
+            completion(nil)
+            return
+        }
         var components = URLComponents(string: "https://www.youtube.com/oembed")
         components?.queryItems = [
             URLQueryItem(name: "url", value: "https://www.youtube.com/watch?v=\(id)"),
