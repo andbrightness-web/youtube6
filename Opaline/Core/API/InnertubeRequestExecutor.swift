@@ -97,6 +97,9 @@ extension InnertubeClient {
             }
 
             AppLog.innertube("\(logTag): success")
+            if YT6.isEnabled {
+                YT6LangProbe.received(json, parsed: result, tag: logTag)
+            }
             completion(.success(result))
         }
     }

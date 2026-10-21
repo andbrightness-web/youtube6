@@ -65,7 +65,7 @@ final class YT6VideoListCell: UITableViewCell {
         number.text = place.map(String.init)
         number.isHidden = place == nil
         arrow.isHidden = place != nil
-        title.text = video.title
+        YT6OriginalTitles.show(video.title, videoId: video.id, in: title)
         uploader.text = video.channelName
         // APPROXIMATION: the dark plate per position follows the light
         // mapping of @404bf4 (top / middle / bottom / single).

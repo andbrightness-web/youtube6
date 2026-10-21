@@ -97,7 +97,7 @@ extension WatchViewController {
     /// APPROXIMATION: 2.0.0 sends the comment (`addComment` @3ef8d0); upstream
     /// has no comment-posting call, so the field says so instead.
     func yt6AddCommentTapped() {
-        let isRussian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let isRussian = YT6.isRussianInterface
         let message = isRussian
             ? "Отправка комментариев пока не поддерживается."
             : "Posting comments isn't supported yet."

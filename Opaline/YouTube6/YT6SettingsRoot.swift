@@ -38,10 +38,10 @@ enum YT6SettingsRoot {
         let account = accountSection(host).map { [$0] } ?? []
         return account + [
             // APPROXIMATION: YOUTUBE holds what Opaline has of YouTube's own
-            // service settings — the interface language and the region.
+            // service settings — the region (the interface is English, REQUEST719).
             Section(
                 title: YT6.string("settings.youtube", fallback: "YOUTUBE"),
-                rows: host.opaline(.language, [.appLanguage, .region])
+                rows: host.opaline(.language, [.region])
             ),
             Section(
                 title: YT6SettingsStyle.header("settings.section.playback"),

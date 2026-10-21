@@ -26,6 +26,9 @@ private func formatVoteCount(_ count: Int) -> String {
 extension WatchViewController {
     func loadInitialState() {
         titleLabel.text = initialVideo.title
+        if YT6.isEnabled {
+            YT6OriginalTitles.show(initialVideo.title, videoId: initialVideo.id, in: titleLabel)
+        }
         metaLabel.text = buildMetaText(
             viewCount: initialVideo.viewCount,
             publishedAt: initialVideo.publishedAt
@@ -118,6 +121,9 @@ extension WatchViewController {
         cache.setWatchPage(page, videoId: initialVideo.id)
         title = page.video.title
         titleLabel.text = page.video.title
+        if YT6.isEnabled {
+            YT6OriginalTitles.show(page.video.title, videoId: page.video.id, in: titleLabel)
+        }
         metaLabel.text = buildMetaText(
             viewCount: page.video.viewCount,
             publishedAt: page.video.publishedAt

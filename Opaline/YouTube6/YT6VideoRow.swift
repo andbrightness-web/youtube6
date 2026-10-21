@@ -114,7 +114,7 @@ final class YT6VideoRow: UIView {
     }
 
     func configure(with video: Video) {
-        title.text = video.title
+        YT6OriginalTitles.show(video.title, videoId: video.id, in: title)
         uploader.text = video.channelName
         meta.text = VideoCardHelper.metaText(
             viewCount: video.viewCount,

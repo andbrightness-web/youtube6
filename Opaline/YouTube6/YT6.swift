@@ -11,13 +11,22 @@ enum YT6 {
     /// into upstream code reads the same way.
     static let isEnabled = true
 
-    /// Content language (`hl`) for Innertube: Russian, so Russian videos
-    /// keep their own titles instead of YouTube's English auto-translations
-    /// on an English-language iPod (REQUEST688). The 2.0.0 interface still
-    /// follows the device language.
+    /// Content language (`hl`) for Innertube: the interface language,
+    /// whatever the iPod or app language (REQUEST719: «интерфейс ютуба на
+    /// английском… не завязываться на локали»). `hl` picks the language of
+    /// YouTube's own texts ("1.2M views", "3 days ago", shelf names) and
+    /// which of a creator's title translations a list carries — no `hl`
+    /// yields the original titles (measured 21.10, see `YT6OriginalTitles`,
+    /// which brings those instead).
     static var contentLanguage: String? {
-        isEnabled ? AppLanguage.russian.rawValue : nil
+        isEnabled ? interfaceLanguage.rawValue : nil
     }
+
+    /// youtube6's one interface language (REQUEST719). Opaline's strings
+    /// (`AppLanguage.effective`), 2.0.0's (`string(_:fallback:)`) and every
+    /// Russian/English choice in `Opaline/YouTube6` follow it.
+    static let interfaceLanguage = AppLanguage.english
+    static var isRussianInterface: Bool { interfaceLanguage == .russian }
 
     // MARK: Guide
 
@@ -122,13 +131,10 @@ enum YT6 {
         return image.resizableImage(withCapInsets: insets, resizingMode: .stretch)
     }
 
-    /// A 2.0.0 `Localizable.strings` entry in the user's language, falling
-    /// back to English and then to `fallback`.
+    /// A 2.0.0 `Localizable.strings` entry in the interface language — not
+    /// the device's (REQUEST719) — falling back to `fallback`.
     static func string(_ key: String, fallback: String) -> String {
-        let languages = Locale.preferredLanguages.map {
-            String($0.split(separator: "-").first ?? Substring($0))
-        }
-        for language in languages + ["en", "English"] {
+        for language in [interfaceLanguage.rawValue, "en", "English"] {
             if let value = strings[language]?[key] {
                 return value
             }

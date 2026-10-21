@@ -71,9 +71,9 @@ enum YT6SettingsStyle {
         key.localized.uppercased(with: Locale(identifier: AppLanguage.effective.rawValue))
     }
 
-    /// youtube6 rows Opaline has no string for, in Opaline's UI language.
+    /// youtube6 rows Opaline has no string for, in the interface language.
     static func text(russian: String, english: String) -> String {
-        AppLanguage.effective.rawValue.hasPrefix("ru") ? russian : english
+        YT6.isRussianInterface ? russian : english
     }
 
     /// `+[YTSettingsViewController stringWithBOOL:]` @4db5c.

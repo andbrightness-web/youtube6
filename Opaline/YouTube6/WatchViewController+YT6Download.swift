@@ -13,7 +13,7 @@ extension WatchViewController {
 
     /// «Save to iPod» — the name the downloads menu carries in youtube6.
     var yt6SaveToDeviceTitle: String {
-        Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        YT6.isRussianInterface
             ? "Сохранить на iPod"
             : "Save to iPod"
     }

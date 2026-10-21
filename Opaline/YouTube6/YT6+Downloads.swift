@@ -6,19 +6,19 @@ import UIKit
 extension YT6 {
     /// «Download» in the menus, as 2013 would have said it.
     static var saveToDeviceTitle: String {
-        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let russian = YT6.isRussianInterface
         return russian ? "Сохранить на iPod" : "Save to iPod"
     }
 
     /// While a download runs: «Cancel download (45 %)» (REQUEST714).
     static var cancelDownloadTitle: String {
-        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let russian = YT6.isRussianInterface
         let percent = Int((VideoDownloader.shared.progress * 100).rounded())
         return russian ? "Отменить загрузку (\(percent) %)" : "Cancel download (\(percent) %)"
     }
 
     static var deleteDownloadTitle: String {
-        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let russian = YT6.isRussianInterface
         return russian ? "Удалить с iPod" : "Delete from iPod"
     }
 

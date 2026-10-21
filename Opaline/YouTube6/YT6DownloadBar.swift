@@ -45,7 +45,7 @@ final class YT6DownloadBar: UIView {
         videoId: String,
         showsSize: Bool
     ) -> String? {
-        let russian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        let russian = YT6.isRussianInterface
         switch status {
         case .running:
             return "\(Int((VideoDownloader.shared.progress * 100).rounded())) %"
