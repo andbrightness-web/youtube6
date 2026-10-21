@@ -162,7 +162,7 @@ class MainTabBarController: UITabBarController {
         // into the container's view — which is above ours, tab bar included.
         let host: UIViewController = parent ?? self
         host.addChild(panel)
-        panel.view.frame = host.view.bounds
+        panel.view.frame = YT6.isEnabled ? YT6.pageFrame(in: host.view) : host.view.bounds
         panel.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         host.view.addSubview(panel.view)
         panel.didMove(toParent: host)

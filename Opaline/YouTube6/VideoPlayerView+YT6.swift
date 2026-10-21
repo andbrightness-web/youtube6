@@ -11,6 +11,11 @@ import UIKit
 extension VideoPlayerView {
     private static let yt6BarHeight: CGFloat = 44
     private static let yt6ButtonSize: CGFloat = 29
+    /// Bar buttons answer touches over the bar's full 44 pt (images stay
+    /// 29 pt where they were): a near miss hid the controls instead of
+    /// pausing (REQUEST702).
+    private static let yt6TouchSize: CGFloat = 44
+    private static let yt6TouchPad: CGFloat = (yt6TouchSize - yt6ButtonSize) / 2
     private static let yt6Gap: CGFloat = 8
     private static let yt6CollapseTag = 0x7936
     private static let yt6PreviousNextInset: CGFloat = 16
@@ -135,15 +140,22 @@ extension VideoPlayerView {
             bar.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor),
             bar.bottomAnchor.constraint(equalTo: safe.bottomAnchor),
             bar.heightAnchor.constraint(equalToConstant: Self.yt6BarHeight),
-            playPauseButton.leadingAnchor.constraint(equalTo: safe.leadingAnchor, constant: gap),
+            playPauseButton.leadingAnchor.constraint(
+                equalTo: safe.leadingAnchor,
+                constant: gap - Self.yt6TouchPad
+            ),
             fullscreenButton.trailingAnchor.constraint(
                 equalTo: safe.trailingAnchor,
-                constant: -gap
+                constant: -gap + Self.yt6TouchPad
             ),
             seekBar.heightAnchor.constraint(equalToConstant: Self.yt6BarHeight)
         ]
+        let buttons: [UIView] = [playPauseButton, ccButton, fullscreenButton]
         for (left, right) in zip(row, row.dropFirst()) {
-            let link = right.leadingAnchor.constraint(equalTo: left.trailingAnchor, constant: gap)
+            // Gaps are between the 29 pt images; the frames reach 7.5 pt past them.
+            let pads = [left, right].filter { item in buttons.contains { $0 === item } }.count
+            let space = gap - CGFloat(pads) * Self.yt6TouchPad
+            let link = right.leadingAnchor.constraint(equalTo: left.trailingAnchor, constant: space)
             constraints.append(link)
         }
         constraints += row.map { $0.centerYAnchor.constraint(equalTo: bar.centerYAnchor) }
@@ -156,7 +168,7 @@ extension VideoPlayerView {
             label.setContentHuggingPriority(.required, for: .horizontal)
             label.setContentCompressionResistancePriority(.required, for: .horizontal)
         }
-        let size = Self.yt6ButtonSize
+        let size = Self.yt6TouchSize
         return [playPauseButton, ccButton, fullscreenButton].flatMap { button in
             [
                 button.widthAnchor.constraint(equalToConstant: size),

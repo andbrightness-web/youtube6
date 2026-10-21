@@ -10,6 +10,15 @@ extension YT6 {
     static let collapsedPlayerRight: CGFloat = 5
     static let collapsedPlayerBottom: CGFloat = 10
 
+    /// The watch page is not a screen of its own with a title bar: 2.0.0
+    /// lays it into the content area under the app's title bar
+    /// (`-[YTContentView layoutSubviews]` @5fd18 — watch view = content
+    /// view, 568 − 20 − 44 = 504 pt), which keeps showing the section's
+    /// guide button, title and search. Opaline's page brought its own bar
+    /// with a status-bar backdrop: the video title twice and the dark band
+    /// over a fresh page (REQUEST700/702).
+    static let titleBarHeight: CGFloat = 44
+
     /// The player overlay hides after 4 s of playback and fades out over
     /// 0.7 s (a tap still hides it in 0.2 s) — the same in fullscreen
     /// (ipodos27 research/YOUTUBE6-STAGE3-WATCH, «Полный экран»).
@@ -21,6 +30,12 @@ extension YT6 {
         isEnabled ? -collapsedPlayerRight : -12
     }
 
+    /// The page's frame in the container: below status and title bar.
+    static func pageFrame(in host: UIView) -> CGRect {
+        let top = host.safeAreaInsets.top + titleBarHeight
+        return CGRect(x: 0, y: top, width: host.bounds.width, height: host.bounds.height - top)
+    }
+
     /// Mini player width: upstream's third of the screen, or 2.0.0's 160.
     static func miniWidth(of bar: UIView, in view: UIView) -> NSLayoutConstraint {
         isEnabled
@@ -29,25 +44,9 @@ extension YT6 {
     }
 }
 
-/// Where the page and its title bar sit, logged when it changes: a dark
-/// band showed above the title bar of a freshly opened page (REQUEST700,
-/// IMG_0238) and the cause is not readable from the code alone.
+/// Where the page sits, logged when it changes (REQUEST700/702).
 extension PlayerPanelViewController {
     private static var yt6LastLayout = ""
-
-    /// A fresh page lays its title bar out while the wrapper still touches
-    /// the top of the screen, i.e. 20 pt down for the status bar, and keeps
-    /// that once the wrapper moves under the status bar: the dark band
-    /// above the bar ([Layout] 11:52:01: wrapper 0,20, bar 0,40; right
-    /// after a rotation). Hiding and showing the bar makes it lay out again.
-    func yt6RelayoutBar(_ wrapper: UINavigationController) {
-        guard !wrapper.isNavigationBarHidden else {
-            return
-        }
-        wrapper.view.layoutIfNeeded()
-        wrapper.setNavigationBarHidden(true, animated: false)
-        wrapper.setNavigationBarHidden(false, animated: false)
-    }
 
     func yt6LogLayout() {
         guard let window = view.window else {

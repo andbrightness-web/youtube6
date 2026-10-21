@@ -165,11 +165,13 @@ private extension PlayerPanelViewController {
         guard let window = view.window else {
             return
         }
-        let top = window.safeAreaInsets.top
-        if YT6.isEnabled, navWrapperTopConstraint?.constant != top {
-            navWrapperTopConstraint?.constant = top
-            yt6RelayoutBar(navigationWrapper)
+        if YT6.isEnabled {
+            // Under the app's title bar already: nothing above the page.
+            navWrapperTopConstraint?.constant = 0
+            statusBarBackdrop.isHidden = true
+            return
         }
+        let top = window.safeAreaInsets.top
         navWrapperTopConstraint?.constant = top
         statusBarBackdrop.backgroundColor = ThemeManager.shared.surface
     }

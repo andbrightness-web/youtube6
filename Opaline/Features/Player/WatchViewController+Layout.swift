@@ -43,7 +43,8 @@ extension WatchViewController {
     func setupNavigationBar() {
         // Bar styling (appearance, tint, margins) is owned by
         // RotatingNavigationController so every bar lays out identically.
-        navigationController?.setNavigationBarHidden(false, animated: false)
+        // youtube6: the page shows under the app's title bar, not its own.
+        navigationController?.setNavigationBarHidden(YT6.isEnabled, animated: false)
         updateLeftBarButton()
     }
 
