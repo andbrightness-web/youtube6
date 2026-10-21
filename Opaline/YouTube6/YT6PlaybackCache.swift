@@ -36,7 +36,7 @@ enum YT6PlaybackCache {
         let expire = url
             .flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?
             .queryItems?.first { $0.name == "expire" }?.value
-            .flatMap(TimeInterval.init)
+            .flatMap { TimeInterval($0) }
         guard let expire else {
             return Date().addingTimeInterval(fallbackLife)
         }
