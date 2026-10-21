@@ -64,7 +64,8 @@ extension SearchViewController {
     /// without waiting for the field to take focus, and comes back when the
     /// user dismisses the keyboard without searching.
     func showHistoryIfIdle() {
-        guard results.isEmpty else {
+        // youtube6: history lives in the search bar's suggestions.
+        guard results.isEmpty, !YT6.isEnabled else {
             setPanel(.hidden)
             return
         }

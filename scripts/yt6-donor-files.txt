@@ -82,3 +82,16 @@ PlayerLibResources.bundle/overlay_next_fullscreen
 PlayerLibResources.bundle/overlay_next_fullscreen_disabled
 YouTubeResources.bundle/uploads_guide
 YouTubeResources.bundle/uploads_guide_selected
+# Search (agent D)
+YouTubeResources.bundle/search_titlebar
+YouTubeResources.bundle/search_input
+YouTubeResources.bundle/search_hint
+UILibResources.bundle/text_field_clear
+UILibResources.bundle/search_add
+UILibResources.bundle/search_add_selected
+UILibResources.bundle/tab_titles_background
+UILibResources.bundle/tab_titles_button
+UILibResources.bundle/tab_titles_button_selected
+UILibResources.bundle/tab_separator
+UILibResources.bundle/bar_shadow
+UILibResources.bundle/settings_button

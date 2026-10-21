@@ -15,6 +15,7 @@ extension SearchViewController {
         searchHistory.add(normalizedQuery)
         setPanel(.hidden)
         let cancellationToken = beginSearch(for: normalizedQuery)
+        if YT6.isEnabled { yt6SearchDidStart() }
         service.search(
             query: normalizedQuery,
             filters: filters,
@@ -92,6 +93,7 @@ extension SearchViewController {
                 presentSearchError(error)
             }
         }
+        if YT6.isEnabled { yt6SearchDidFinish(result) }
     }
 
     private func presentSearchError(_ error: Error) {
