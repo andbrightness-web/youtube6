@@ -117,9 +117,10 @@ final class NowPlayingService {
               var info = MPNowPlayingInfoCenter.default().nowPlayingInfo else {
             return
         }
+        let artwork = YT6.isEnabled ? YT6.squareArtwork(image) : image
         info[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(
-            boundsSize: image.size
-        ) { _ in image }
+            boundsSize: artwork.size
+        ) { _ in artwork }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
