@@ -723,15 +723,18 @@ extension WatchViewController {
 
     /// A new video: the previous one's paused frame and play button stayed
     /// up for the whole load and read as «paused, tap play» (REQUEST698).
-    /// The player view goes until the new item is attached; the page's own
-    /// spinner shows meanwhile.
+    /// The player view is cleared to black with its spinner and no controls.
+    /// It exists from the first tap on, so turning the iPod while a fresh
+    /// page loads goes to fullscreen, not upstream's landscape page with a
+    /// sidebar (REQUEST703: there was no player view to take fullscreen).
     func yt6ShowLoading() {
-        guard let playerView = videoPlayerView else {
-            return
-        }
+        let playerView = getOrCreatePlayerView()
         resetPlaybackSurfaces()
-        playerView.isHidden = true
-        playerSpinner.startAnimating()
+        playerView.isHidden = false
+        playerView.setControls(visible: false, animated: false)
+        playerView.spinner.startAnimating()
+        playerContainer.bringSubviewToFront(playerView)
+        syncFullscreenWithRotation(isLandscape: view.bounds.width > view.bounds.height)
     }
 
     /// `overlay_watch_collapse` on the player: back to the collapsed player.

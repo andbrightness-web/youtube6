@@ -26,5 +26,10 @@ extension VideoPlayerView {
         bufferingIndicatorWork?.cancel()
         spinner.stopAnimating()
         setCenter(hidden: false)
+        if YT6.isEnabled, controlsVisible {
+            // 2.0.0 hides the overlay 4 s into playback, not only after a
+            // tap (REQUEST703); the hide itself waits for playback.
+            scheduleAutoHide()
+        }
     }
 }
