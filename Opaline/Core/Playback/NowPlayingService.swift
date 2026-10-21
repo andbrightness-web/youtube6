@@ -42,11 +42,13 @@ final class NowPlayingService {
         publishInfo(metadata: metadata, position: 0)
         registerCommands()
         loadArtwork(url: metadata.artworkURL)
+        if YT6.isEnabled { YT6NowPlayingRate.shared.track(player) }
     }
 
     /// Re-points the session at a replacement player for the same item.
     func rebindPlayer(_ player: AVPlayer) {
         self.player = player
+        if YT6.isEnabled { YT6NowPlayingRate.shared.track(player) }
     }
 
     func updatePosition(_ position: TimeInterval) {
@@ -66,6 +68,7 @@ final class NowPlayingService {
     }
 
     func endSession() {
+        if YT6.isEnabled { YT6NowPlayingRate.shared.track(nil) }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         removeCommands()
         player = nil
