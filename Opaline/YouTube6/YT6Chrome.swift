@@ -73,6 +73,14 @@ enum YT6Chrome {
             action: #selector(YT6GuideActions.toggleGuide)
         )
         vc.navigationItem.rightBarButtonItems = [searchButton(for: vc)]
+        // Screens pushed from here get 2.0.0's «Back» on the plate; with the
+        // logo as the title it was empty and squeezed (REQUEST718).
+        vc.navigationItem.backBarButtonItem = UIBarButtonItem(
+            title: YT6.string("nav_bar.back.access", fallback: "Back"),
+            style: .plain,
+            target: nil,
+            action: nil
+        )
         // APPROXIMATION: logo as the title of What To Watch, the row title
         // elsewhere — to be checked against 2013 screenshots.
         if section == .whatToWatch, let logo = YT6.image("logo") {
