@@ -48,6 +48,9 @@ final class YT6DownloadBar: UIView {
         let russian = YT6.isRussianInterface
         switch status {
         case .running:
+            if let stage = YT6AndCastJobs.stages[videoId] {
+                return stage.text
+            }
             return "\(Int((VideoDownloader.shared.progress * 100).rounded())) %"
         case .queued:
             return russian ? "В очереди" : "Queued"

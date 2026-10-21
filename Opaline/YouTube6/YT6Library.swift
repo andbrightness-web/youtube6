@@ -42,25 +42,41 @@ final class YT6Library {
     static let shared = YT6Library()
     static let pageSize = 30
 
+    private let lock = NSLock()
     private var converted: (revision: String, videos: [Video])?
     private var shelf: [String] = []
+
+    private var stamp: String {
+        (YT6AndCastCatalog.shared.revision ?? "") + "#" + YT6AndCastNumbers.shared.stamp
+    }
 
     /// Every video of the current mode, newest first.
     var videos: [Video] {
         guard YT6Source.mode == .andCastOnly else {
             return DownloadStore.downloads().filter { DownloadStore.isDownloaded($0.id) }
         }
-        let catalog = YT6AndCastCatalog.shared
-        let revision = catalog.revision ?? ""
-        if let converted, converted.revision == revision {
-            return converted.videos
+        let wanted = stamp
+        lock.lock()
+        let ready = converted
+        lock.unlock()
+        if let ready, ready.revision == wanted {
+            return ready.videos
         }
-        let made = catalog.items.map(YT6LibraryVideo.make)
-        converted = (revision, made)
-        return made
+        return convert(wanted)
     }
 
-    /// The guide's channel list.
+    /// What the other andCast clients list in Home and subscriptions: the
+    /// videos of channels the owner did not exclude (`SubscriptionsVisible`).
+    var followedVideos: [Video] {
+        guard YT6Source.mode == .andCastOnly else {
+            return videos
+        }
+        let hidden = Set(YT6AndCastCatalog.shared.channels.filter { !$0.visible }.map(\.id))
+        return videos.filter { !hidden.contains($0.channelId ?? "") }
+    }
+
+    /// The guide's channel list: andCast's followed channels, as the iPhone,
+    /// TV and Web clients list them (`subscriptionsVisible`).
     var channels: [SubscribedChannel] {
         guard YT6Source.mode == .andCastOnly else {
             var seen = Set<String>()
@@ -74,7 +90,11 @@ final class YT6Library {
             }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         }
-        return YT6AndCastCatalog.shared.channels.map { channel in
+        let filled = Set(YT6AndCastCatalog.shared.items.compactMap(\.channelId))
+        let shown = YT6AndCastCatalog.shared.channels.filter {
+            $0.visible && filled.contains($0.id)
+        }
+        return shown.map { channel in
             SubscribedChannel(
                 id: channel.id,
                 title: channel.title,
@@ -88,11 +108,11 @@ final class YT6Library {
     /// everything else newest first; offline the saved videos.
     private var homeList: [Video] {
         guard YT6Source.mode == .andCastOnly, !shelf.isEmpty else {
-            return videos
+            return followedVideos
         }
         let picked = shelf.compactMap(video(item:))
         let ids = Set(picked.map(\.id))
-        return picked + videos.filter { !ids.contains($0.id) }
+        return picked + followedVideos.filter { !ids.contains($0.id) }
     }
 
     /// `recommend.py bucket_of`: weekday/weekend and night/morning/day/evening.
@@ -103,8 +123,30 @@ final class YT6Library {
         return (calendar.isDateInWeekend(date) ? "weekend-" : "weekday-") + part
     }
 
+    /// Off the main queue when the catalog or the numbers change: 14k rows
+    /// built on the main queue held the screens (and their covers) back.
+    func prepare() {
+        guard YT6Source.mode == .andCastOnly else {
+            return
+        }
+        let wanted = stamp
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            _ = self?.convert(wanted)
+        }
+    }
+
+    private func convert(_ wanted: String) -> [Video] {
+        let made = YT6AndCastCatalog.shared.items.map(YT6LibraryVideo.make)
+        lock.lock()
+        converted = (wanted, made)
+        lock.unlock()
+        return made
+    }
+
+    /// A channel's videos, by its andCast or its YouTube id.
     func videos(ofChannel id: String) -> [Video] {
-        videos.filter { $0.channelId == id }
+        let own = YT6Source.mode == .andCastOnly ? YT6AndCastChannelMap.channel(id)?.id ?? id : id
+        return videos.filter { $0.channelId == own }
     }
 
     func search(_ query: String) -> [Video] {
@@ -136,7 +178,7 @@ final class YT6Library {
         case "search":
             list = search(cursor.argument)
         default:
-            list = videos
+            list = followedVideos
         }
         return slice(list, cursor)
     }
@@ -146,6 +188,9 @@ final class YT6Library {
         let videos = cursor.offset < end ? Array(list[cursor.offset..<end]) : []
         let next = end < list.count
             ? Cursor(kind: cursor.kind, offset: end, argument: cursor.argument).token : nil
+        if end < list.count {
+            YT6AndCastArtwork.warm(Array(list[end..<min(end + Self.pageSize, list.count)]))
+        }
         return FeedPage(videos: videos, continuation: next)
     }
 

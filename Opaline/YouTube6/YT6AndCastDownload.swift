@@ -1,17 +1,25 @@
 import Foundation
 
-/// «Save to iPod» from andCast when the server has the video (REQUEST722):
-/// the andCast client's device copy (`ACDownloads.m`) — `POST
-/// /v1/downloads` {item, mode, quality, device}, `GET /v1/downloads/{key}`
-/// until `ready` (the server remuxes or converts to H.264/AAC for the
-/// iPod), the file from `/v1/downloads/{key}/file`, then `POST
-/// /v1/downloads/{key}/delivered` with its sha256. Everything else — the
-/// queue, `YT6DownloadBar`, the Downloads list, the storage — is upstream's
-/// `VideoDownloader`, so a saved copy is a saved video like any other.
+/// «Save to iPod» from andCast when the server has the video (REQUEST722,
+/// 729, 731): the andCast client's device copy (`ACDownloads.m`) through
+/// `YT6AndCastJobs` (one kept job per video, picked up again later), the
+/// file in parallel ranges (`YT6AndCastFileFetch`), size and sha256
+/// checked, then `POST /v1/downloads/{key}/delivered`. The stages show in
+/// the row's grey line as the andCast client words them. Everything else —
+/// the queue, `YT6DownloadBar`, the Downloads list, the storage — is
+/// upstream's `VideoDownloader`, so a saved copy is a saved video.
 enum YT6AndCastDownload {
     /// Marks an option as andCast's in `DownloadOption.video.itag`.
     static let itag = -722
     static let heights = [1_080, 720, 480, 360]
+
+    /// The quality a copy is prepared at when nobody picked one (playback):
+    /// the download setting's, else 720p — the same job a later «Save to
+    /// iPod» at that setting picks up.
+    static var preferredQuality: Int {
+        let wanted = DownloadPreferences.preferredHeight ?? 720
+        return heights.first { $0 <= wanted } ?? 360
+    }
 
     /// andCast's renditions for this video, nil when YouTube should save it.
     static func options(
@@ -95,107 +103,14 @@ enum YT6AndCastDownload {
     static func item(of option: DownloadOption) -> String {
         option.video.url.lastPathComponent
     }
-}
 
-extension VideoDownloader {
-    /// `fetchTracks` for an andCast option: prepare on the server, wait,
-    /// fetch the file into the video's folder, report it delivered.
-    func yt6FetchFromAndCast(videoId: String, option: DownloadOption) {
-        let item = YT6AndCastDownload.item(of: option)
-        let body: [String: Any] = [
-            "item": item, "mode": "video", "quality": option.height, "device": YT6AndCast.deviceId
-        ]
-        YT6AndCast.call("v1/downloads", body: body) { [weak self] reply in
-            self?.yt6AndCastWait(videoId: videoId, option: option, job: reply, polls: 0)
-        }
-    }
-
-    private func yt6AndCastWait(
-        videoId: String,
-        option: DownloadOption,
-        job: [String: Any]?,
-        polls: Int
-    ) {
-        guard cancellation?.isCancelled == false, activeVideoId == videoId else {
+    /// The owner cancelled a save (or deleted it before it arrived): the
+    /// server may drop the copy (`release`), the parts go.
+    static func cancelled(_ videoId: String) {
+        YT6AndCastJobs.setStage(nil, videoId: videoId)
+        guard let item = YT6AndCastCatalog.shared.item(videoId: videoId) else {
             return
         }
-        guard let job, let key = job["key"] as? String, let status = job["status"] as? String else {
-            fail(videoId: videoId, error: YT6AndCastError.unavailable("andCast refused the copy"))
-            return
-        }
-        switch status {
-        case "ready":
-            yt6AndCastTransfer(videoId: videoId, option: option, job: job, key: key)
-        case "queued", "preparing":
-            if polls.isMultiple(of: 10) {
-                let done = Int(((job["preparationProgress"] as? Double) ?? 0) * 100)
-                YT6AndCast.log("save \(videoId): server is preparing the copy, \(done) %")
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-                YT6AndCast.call("v1/downloads/\(key)") { reply in
-                    self?.yt6AndCastWait(
-                        videoId: videoId, option: option, job: reply, polls: polls + 1
-                    )
-                }
-            }
-        default:
-            let why = job["error"] as? String ?? status
-            fail(videoId: videoId, error: YT6AndCastError.unavailable("andCast: \(why)"))
-        }
-    }
-
-    private func yt6AndCastTransfer(
-        videoId: String,
-        option: DownloadOption,
-        job: [String: Any],
-        key: String
-    ) {
-        let bytes = (job["bytes"] as? Int64) ?? (job["bytes"] as? Int).map(Int64.init) ?? 0
-        let path = job["path"] as? String ?? "v1/downloads/\(key)/file"
-        YT6AndCast.log("save \(videoId): copy ready, \(bytes / 1_048_576) MB, fetching")
-        YT6AndCastReach.current { [weak self] base in
-            let relative = String(path.drop { $0 == "/" })
-            guard let self, let base, let request = YT6AndCast.api(relative, base: base) else {
-                let gone = YT6AndCastError.unavailable("andCast went away")
-                self?.fail(videoId: videoId, error: gone)
-                return
-            }
-            let scale = Double(max(option.bytes, 1)) / Double(max(bytes, 1))
-            YT6AndCastFileFetch.start(request, scale: scale, downloader: self) { result in
-                let sha = job["sha256"] as? String
-                self.yt6AndCastFinish(videoId: videoId, key: key, sha: sha, result: result)
-            }
-        }
-    }
-
-    private func yt6AndCastFinish(
-        videoId: String,
-        key: String,
-        sha: String?,
-        result: Result<URL, Error>
-    ) {
-        guard cancellation?.isCancelled == false, activeVideoId == videoId else {
-            return
-        }
-        switch result {
-        case .failure(let error):
-            fail(videoId: videoId, error: error)
-        case .success(let temporary):
-            let output = DownloadStore.videoFile(for: videoId)
-            try? FileManager.default.removeItem(at: output)
-            do {
-                try FileManager.default.moveItem(at: temporary, to: output)
-            } catch {
-                fail(videoId: videoId, error: DownloadError.storage)
-                return
-            }
-            YT6AndCast.log("save \(videoId): saved from andCast")
-            AppLog.downloads("finished \(videoId) (andCast)")
-            finishJob(reporting: .success(output))
-            if let sha {
-                let body = ["device": YT6AndCast.deviceId, "sha256": sha]
-                YT6AndCast.call("v1/downloads/\(key)/delivered", body: body) { _ in }
-            }
-        }
+        YT6AndCastJobs.release(item: item.id)
     }
 }

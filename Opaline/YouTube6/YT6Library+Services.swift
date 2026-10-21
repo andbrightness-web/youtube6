@@ -72,7 +72,7 @@ extension YT6Library: FeedService, HistoryService, SearchService, SubscribedChan
             return
         }
         guard YT6Source.mode == .andCastOnly else {
-            answer(FeedPage(videos: videos), completion)
+            savedHistory(completion)
             return
         }
         YT6AndCast.call("v1/history", query: ["limit": "200"]) { [weak self] body in
@@ -80,6 +80,15 @@ extension YT6Library: FeedService, HistoryService, SearchService, SubscribedChan
             let ids = entries.compactMap { $0["id"] as? String }
             let list = ids.compactMap { self?.video(item: $0) }
             completion(.success(FeedPage(videos: list)))
+        }
+    }
+
+    /// «Downloaded only»: the YouTube history kept on the iPod, saved
+    /// videos only; the saved videos when it holds none of them.
+    private func savedHistory(_ completion: @escaping PageReply) {
+        AppCache.youtube.loadHistoryFeed { [weak self] page in
+            let saved = (page?.videos ?? []).filter { DownloadStore.isDownloaded($0.id) }
+            completion(.success(FeedPage(videos: saved.isEmpty ? self?.videos ?? [] : saved)))
         }
     }
 
@@ -128,23 +137,6 @@ extension YT6Library: FeedService, HistoryService, SearchService, SubscribedChan
 }
 
 extension YT6Library: ChannelService, ChannelTabService {
-    private func info(_ channelId: String) -> ChannelInfo {
-        let list = videos(ofChannel: channelId)
-        let channel = YT6AndCastCatalog.shared.channel(channelId)
-        let avatar = channel.flatMap { YT6AndCast.artworkURL($0.id, revision: $0.artwork) }
-        return ChannelInfo(
-            id: channelId,
-            title: channel?.title ?? list.first?.channelName ?? "",
-            avatarURL: avatar ?? list.first?.channelAvatarURL,
-            subscriberCountText: nil,
-            bannerURL: nil,
-            isVerified: false,
-            description: nil,
-            contactInfo: nil,
-            videoCountText: "\(list.count) videos"
-        )
-    }
-
     private func reply<T>(_ value: T, _ completion: @escaping (Result<T, Error>) -> Void) {
         DispatchQueue.main.async { completion(.success(value)) }
     }
@@ -153,20 +145,25 @@ extension YT6Library: ChannelService, ChannelTabService {
         channelId: String,
         completion: @escaping (Result<ChannelInfo, Error>) -> Void
     ) {
-        reply(info(channelId), completion)
+        mergedInfo(channelId) { completion(.success($0)) }
     }
 
     func fetchChannelPage(
         channelId: String,
         completion: @escaping (Result<ChannelPage, Error>) -> Void
     ) {
-        let page = ChannelPage(
-            info: info(channelId),
-            videosPage: firstPage("channel", argument: channelId),
-            subscribeButtonText: nil,
-            isSubscribed: false
-        )
-        reply(page, completion)
+        mergedInfo(channelId) { [weak self] info in
+            guard let self else {
+                return
+            }
+            let page = ChannelPage(
+                info: info,
+                videosPage: self.firstPage("channel", argument: channelId),
+                subscribeButtonText: nil,
+                isSubscribed: false
+            )
+            completion(.success(page))
+        }
     }
 
     func enrichChannelInfo(

@@ -1,73 +1,16 @@
 import Foundation
 
-/// The watch page in «andCast only»: title, channel and date from the
-/// catalog, the description from `/v1/items/{id}` (`Overview`), up next
-/// from `/v1/recommendations/next` (the andCast player's own), else the
-/// channel's newest. andCast has no likes or comments: those stay empty,
-/// and nothing here reaches YouTube.
+/// The watch service in «andCast only»; the page itself is in
+/// `YT6Library+WatchPage.swift`. Comments and tracking come from YouTube
+/// when it answers.
 extension YT6Library: WatchService {
     /// The service the other modes use, for whoever kept this object.
-    private var other: WatchService? {
+    var other: WatchService? {
         YT6Source.mode == .andCastOnly ? nil : ServiceContainer.offlineWatch
     }
 
-    private static func page(_ video: Video, overview: String?, related: [Video]) -> WatchPage {
-        let info = ChannelInfo(
-            id: video.channelId ?? "",
-            title: video.channelName,
-            avatarURL: video.channelAvatarURL,
-            subscriberCountText: nil,
-            bannerURL: nil,
-            isVerified: false,
-            description: nil,
-            contactInfo: nil,
-            videoCountText: nil
-        )
-        return WatchPage(
-            video: video,
-            description: overview,
-            channelInfo: info,
-            subscribeButtonText: nil,
-            isSubscribed: false,
-            relatedVideos: related,
-            likeCount: nil,
-            likeStatus: nil,
-            commentCount: nil,
-            nextVideo: related.first,
-            playlistTitle: nil,
-            playlistVideos: nil
-        )
-    }
-
-    func fetchWatchPage(
-        video: Video,
-        cancellationToken: CancellationToken?,
-        completion: @escaping (Result<WatchPage, Error>) -> Void
-    ) {
-        if let other {
-            other.fetchWatchPage(
-                video: video, cancellationToken: cancellationToken, completion: completion
-            )
-            return
-        }
-        guard let item = YT6AndCastCatalog.shared.item(videoId: video.id) else {
-            DispatchQueue.main.async {
-                completion(.failure(YT6AndCastError.unavailable("This video is not on andCast.")))
-            }
-            return
-        }
-        let shown = YT6LibraryVideo.make(item)
-        details(item.id) { [weak self] overview, next in
-            let channel = self?.videos(ofChannel: shown.channelId ?? "") ?? []
-            let related = next.isEmpty ? channel.filter { $0.id != shown.id } : next
-            YT6AndCast.log("library: watch page \(video.id), \(related.count) up next")
-            let page = Self.page(shown, overview: overview, related: Array(related.prefix(20)))
-            completion(.success(page))
-        }
-    }
-
     /// The description and up next, asked together.
-    private func details(_ item: String, completion: @escaping (String?, [Video]) -> Void) {
+    func details(_ item: String, completion: @escaping (String?, [Video]) -> Void) {
         let group = DispatchGroup()
         var overview: String?
         var next: [Video] = []
@@ -87,7 +30,7 @@ extension YT6Library: WatchService {
     }
 
     /// `/v1/recommendations/next?id=` — entries by andCast id.
-    private func upNext(_ item: String, completion: @escaping ([Video]) -> Void) {
+    func upNext(_ item: String, completion: @escaping ([Video]) -> Void) {
         let tz = TimeZone.current.secondsFromGMT() / 60
         let query = ["id": item, "tz": "\(tz)"]
         YT6AndCast.call("v1/recommendations/next", query: query) { [weak self] body in
@@ -137,8 +80,19 @@ extension YT6Library: WatchService {
             )
             return
         }
+        // YouTube's comments first; the andCast base keeps none, so the
+        // fallback is an empty list.
         let empty = CommentsPage(title: nil, comments: [], continuation: nil, sortOptions: [])
-        DispatchQueue.main.async { completion(.success(empty)) }
+        let fallback = Result<CommentsPage, Error>.success(empty)
+        YT6Race.first(within: 6, fallback: fallback, completion: completion) { done in
+            ServiceContainer.offlineWatch.fetchComments(
+                videoId: videoId,
+                continuation: continuation,
+                cancellationToken: cancellationToken
+            ) { result in
+                done((try? result.get()).map { .success($0) })
+            }
+        }
     }
 
     func fetchQueuePage(
@@ -164,12 +118,17 @@ extension YT6Library: WatchService {
         completion(.failure(YT6AndCastError.unavailable("andCast only")))
     }
 
+    /// YouTube's tracking URLs even here: the media comes from andCast,
+    /// the watch still goes to the account's history.
     func fetchWatchtimeURLs(videoId: String, completion: @escaping (WatchtimeURLs?) -> Void) {
         if let other {
             other.fetchWatchtimeURLs(videoId: videoId, completion: completion)
             return
         }
-        completion(nil)
+        ServiceContainer.offlineWatch.fetchWatchtimeURLs(videoId: videoId) { urls in
+            YT6AndCastStats.shared.youtubeAnswered(videoId: videoId, reached: urls != nil)
+            completion(urls)
+        }
     }
 
     func fetchCaptionTracks(videoId: String, completion: @escaping ([SubtitleTrack]) -> Void) {

@@ -128,6 +128,9 @@ final class VideoDownloader {
         }
         cancellation?.cancel()
         AppLog.downloads("cancelled \(job.video.id)")
+        if YT6.isEnabled {
+            YT6AndCastDownload.cancelled(job.video.id)
+        }
         // The whole folder, not just the parts: the metadata was written when
         // the download was asked for, and leaving it behind would keep an
         // empty card on the Downloads screen forever.
@@ -147,6 +150,9 @@ final class VideoDownloader {
         }
         jobs.remove(at: index)
         AppLog.downloads("dequeued \(videoId)")
+        if YT6.isEnabled {
+            YT6AndCastDownload.cancelled(videoId)
+        }
         DownloadStore.remove(videoId)
     }
 

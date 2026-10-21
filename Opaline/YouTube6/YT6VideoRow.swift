@@ -124,6 +124,7 @@ final class YT6VideoRow: UIView {
         duration.text = video.isLive ? "LIVE" : video.duration
         duration.isHidden = duration.text?.isEmpty ?? true
         YT6SourceBadge.markRow(thumbnail, videoId: video.id)
+        YT6AndCastChannelMap.learn(videoId: video.id, youtubeChannel: video.channelId)
         thumbnail.maxPixelSize = ThumbnailSizing.pixelSize(
             forDisplayWidth: Self.thumbnailSize.width,
             scale: UIScreen.main.scale

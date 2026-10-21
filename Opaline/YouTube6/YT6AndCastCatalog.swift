@@ -16,7 +16,6 @@ final class YT6AndCastCatalog {
 
     static let shared = YT6AndCastCatalog()
     static let didChangeNotification = Notification.Name("YT6AndCastCatalogDidChange")
-    private static let pollInterval: TimeInterval = 10 * 60
 
     static var account: String? {
         YT6AndCast.session.map { "\($0.server)|\($0.userID)" }
@@ -30,10 +29,13 @@ final class YT6AndCastCatalog {
     private var byChannel: [String: Channel] = [:]
     private(set) var isSyncing = false
     private(set) var lastSync: Date?
-    private(set) var lastError: String?
-    private var timer: Timer?
+    var lastError: String?
+    /// `syncPhase` of `ACCatalog`: what the sync is doing now.
+    private(set) var phase: String?
+    /// The server is scanning its library (`X-andCast-Refreshing: 1`).
+    var serverRefreshing = false
 
-    private var file: URL {
+    var file: URL {
         let manager = FileManager.default
         let support = manager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try? manager.createDirectory(at: support, withIntermediateDirectories: true)
@@ -47,6 +49,12 @@ final class YT6AndCastCatalog {
         return store?.items ?? []
     }
 
+    var playlists: [YT6AndCastPlaylist] {
+        lock.lock()
+        defer { lock.unlock() }
+        return store?.playlists ?? []
+    }
+
     var channels: [Channel] {
         lock.lock()
         defer { lock.unlock() }
@@ -55,7 +63,7 @@ final class YT6AndCastCatalog {
 
     var revision: String? { currentStore?.revision }
 
-    private var currentStore: Store? {
+    var currentStore: Store? {
         lock.lock()
         defer { lock.unlock() }
         return store
@@ -84,45 +92,6 @@ final class YT6AndCastCatalog {
         return byChannel[id]
     }
 
-    // MARK: Life cycle
-
-    /// Reads the saved copy, then keeps it fresh while the app is in front.
-    func start() {
-        queue.async { [weak self] in
-            guard let self else {
-                return
-            }
-            let saved = (try? Data(contentsOf: self.file))
-                .flatMap { try? JSONDecoder().decode(Store.self, from: $0) }
-            DispatchQueue.main.async {
-                if let saved, saved.account == Self.account {
-                    self.install(saved)
-                    YT6AndCast.log("catalog: \(saved.items.count) videos from the saved copy")
-                }
-                self.sync()
-            }
-        }
-        timer = Timer.scheduledTimer(
-            withTimeInterval: Self.pollInterval, repeats: true
-        ) { [weak self] _ in
-            if UIApplication.shared.applicationState == .active {
-                self?.sync()
-            }
-        }
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            self?.sync()
-        }
-    }
-
-    func reset() {
-        install(nil)
-        queue.async { [file] in
-            try? FileManager.default.removeItem(at: file)
-        }
-    }
-
     // MARK: Sync
 
     /// One ETag poll; a no-op while one runs or nothing may be asked.
@@ -131,6 +100,8 @@ final class YT6AndCastCatalog {
             return
         }
         isSyncing = true
+        phase = "Downloading library…"
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
         YT6AndCastReach.current { [weak self] base in
             guard let self else {
                 return
@@ -141,19 +112,6 @@ final class YT6AndCastCatalog {
             }
             self.fetch(request)
         }
-    }
-
-    private func catalogRequest(base: URL) -> URLRequest? {
-        let saved = currentStore
-        let current = saved?.account == Self.account ? saved?.revision : nil
-        var request = YT6AndCast.api(
-            "v1/catalog", base: base, query: current.map { ["since": $0] } ?? [:]
-        )
-        if let current {
-            request?.setValue("\"\(current)\"", forHTTPHeaderField: "If-None-Match")
-        }
-        request?.timeoutInterval = 60
-        return request
     }
 
     private func fetch(_ request: URLRequest) {
@@ -169,12 +127,18 @@ final class YT6AndCastCatalog {
                 return
             }
             let ms = Int(Date().timeIntervalSince(started) * 1_000)
+            let headers = (response as? HTTPURLResponse)?.allHeaderFields ?? [:]
+            DispatchQueue.main.async { self.readFlags(headers) }
             guard status == 200, let data else {
                 YT6AndCast.log("catalog: unchanged (304) in \(ms) ms")
                 DispatchQueue.main.async { self.finishSync(error: nil) }
                 return
             }
             YT6AndCast.log("catalog: \(data.count / 1_024) KB in \(ms) ms")
+            DispatchQueue.main.async {
+                self.phase = "Saving library on this iPod…"
+                NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+            }
             self.queue.async { self.apply(data) }
         }
         .resume()
@@ -205,7 +169,7 @@ final class YT6AndCastCatalog {
         }
     }
 
-    private func install(_ next: Store?) {
+    func install(_ next: Store?) {
         var videos: [String: Item] = [:]
         var ids: [String: Item] = [:]
         next?.items.forEach { item in
@@ -230,11 +194,15 @@ final class YT6AndCastCatalog {
 
     private func finishSync(error: String?) {
         isSyncing = false
-        lastError = error
+        phase = nil
+        lastError = error ?? (serverRefreshing ? nil : lastError)
         if let error {
             YT6AndCast.log("catalog: sync failed, \(error)")
         } else {
             lastSync = Date()
+            YT6AndCastNumbers.shared.refresh()
+            YT6AndCastState.refresh()
+            YT6Library.shared.prepare()
         }
         NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
     }

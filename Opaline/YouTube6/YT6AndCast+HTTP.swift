@@ -133,6 +133,29 @@ extension YT6AndCast {
         }
     }
 
+    /// `call` with the HTTP status (0 when nothing answered).
+    static func callStatus(
+        _ path: String,
+        completion: @escaping (Int, [String: Any]?) -> Void
+    ) {
+        YT6AndCastReach.current { base in
+            guard let base, let request = api(path, base: base) else {
+                completion(0, nil)
+                return
+            }
+            perform(request) { result in
+                switch result {
+                case .success(let data):
+                    completion(200, json(data))
+                case .failure(YT6AndCastError.http(let code)):
+                    completion(code, nil)
+                case .failure:
+                    completion(0, nil)
+                }
+            }
+        }
+    }
+
     static func json(_ data: Data) -> [String: Any]? {
         (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }

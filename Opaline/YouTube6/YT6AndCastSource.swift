@@ -8,26 +8,46 @@ import Foundation
 /// Jellyfin's HLS transcode. Anything else falls through to the YouTube
 /// chain it wraps, so nothing changes for the videos the server lacks.
 ///
-/// While the server plays there is no quality menu: the server picks the
-/// stream for the iPod. Once YouTube plays, its menu is YouTube's.
+/// While the server plays, the quality menu lists what andCast can give
+/// (REQUEST733, `YT6AndCastPlayback+Quality`): the original or the ready
+/// copy, and transcode tiers below it; a pick rebuilds the stream at the
+/// same position. Once YouTube plays, its menu is YouTube's.
 final class YT6AndCastSource: VideoSource {
     /// Videos the server dropped mid-play: YouTube takes them for a while.
     private static var dropped: [String: Date] = [:]
     private static let dropCoolDown: TimeInterval = 5 * 60
 
-    private let item: YT6AndCastCatalog.Item?
-    private let network: VideoSource?
-    private(set) var playingFromServer = false
-    private var encodingSession: String?
+    let item: YT6AndCastCatalog.Item?
+    let network: VideoSource?
+    var playingFromServer = false
+    var encodingSession: String?
+    /// The stream now playing from the server.
+    var stream: YT6AndCastPlayback.Stream?
 
     var name: String { playingFromServer ? "andcast" : (network?.name ?? "andcast") }
     var supportsQualitySelection: Bool {
-        !playingFromServer && network?.supportsQualitySelection == true
+        playingFromServer || network?.supportsQualitySelection == true
     }
     var availableQualities: [VideoQuality] {
-        playingFromServer ? [] : network?.availableQualities ?? []
+        playingFromServer ? serverQualities : network?.availableQualities ?? []
     }
-    var currentQuality: VideoQuality? { playingFromServer ? nil : network?.currentQuality }
+    var currentQuality: VideoQuality? {
+        guard playingFromServer, let stream else {
+            return network?.currentQuality
+        }
+        return Self.quality(stream.tier, source: stream.height, copy: stream.tier == nil)
+    }
+
+    /// The original (or the prepared copy), then the tiers below it.
+    private var serverQualities: [VideoQuality] {
+        guard let stream else {
+            return []
+        }
+        let top = stream.height ?? YT6AndCastPlayback.tiers[0]
+        let below = YT6AndCastPlayback.tiers.filter { $0 < top }
+        return [Self.quality(nil, source: stream.height, copy: true)]
+            + below.map { Self.quality($0, source: stream.height, copy: false) }
+    }
     var currentCodecs: String? { playingFromServer ? "andCast" : network?.currentCodecs }
     var listsAudioTracks: Bool { network?.listsAudioTracks ?? false }
     var availableAudioTracks: [AudioTrack] { network?.availableAudioTracks ?? [] }
@@ -89,6 +109,7 @@ final class YT6AndCastSource: VideoSource {
             return
         }
         let started = Date()
+        PlaybackProgress.report?("Asking andCast…")
         YT6AndCastReach.current { [weak self] base in
             guard let self, cancellation?.isCancelled != true else {
                 return
@@ -98,7 +119,7 @@ final class YT6AndCastSource: VideoSource {
                 self.fallBack(videoId, why: why, cancellation: cancellation, completion: completion)
                 return
             }
-            YT6AndCastPlayback.resolve(item: item.id, base: base) { result in
+            YT6AndCastPlayback.resolve(item: item.id, base: base, tier: nil) { result in
                 self.finish(
                     result,
                     videoId: videoId,
@@ -126,8 +147,12 @@ final class YT6AndCastSource: VideoSource {
             let ms = Int(Date().timeIntervalSince(started) * 1_000)
             YT6AndCast.log("play \(videoId): from andCast, \(stream.method) in \(ms) ms")
             playingFromServer = true
+            self.stream = stream
             encodingSession = stream.isTranscode ? stream.session : nil
-            let playerItem = AVPlayerItem(asset: AVURLAsset(url: stream.url))
+            let playerItem = AVPlayerItem(asset: stream.asset)
+            if stream.isTranscode, stream.tier == nil {
+                YT6AndCastUpgrade.watch(item: item?.id ?? "", videoId: videoId, source: self)
+            }
             PlaybackBufferPolicy.configure(item: playerItem)
             completion(.success(PreparedPlayback(item: playerItem, duration: item?.seconds)))
         case .failure(let error):
@@ -157,6 +182,11 @@ final class YT6AndCastSource: VideoSource {
         resumeAt: Double?,
         completion: @escaping (Result<PreparedPlayback, Error>) -> Void
     ) {
+        if quality.id.hasPrefix("andcast-"), let item {
+            let tier = Int(quality.id.dropFirst("andcast-".count)).flatMap { $0 > 0 ? $0 : nil }
+            serverQuality(item, tier: tier, label: quality.label, completion: completion)
+            return
+        }
         guard let network else {
             completion(.failure(YT6AndCastError.unavailable("No other quality on andCast.")))
             return
@@ -169,43 +199,20 @@ final class YT6AndCastSource: VideoSource {
         network.selectQuality(quality, resumeAt: resumeAt, completion: completion)
     }
 
-    func selectAudioTrack(
-        _ track: AudioTrack,
-        resumeAt: Double?,
-        completion: @escaping (Result<PreparedPlayback, Error>) -> Void
-    ) {
-        guard let network else {
-            completion(.failure(YT6AndCastError.unavailable("No other audio on andCast.")))
-            return
-        }
-        stopEncoding()
-        playingFromServer = false
-        network.selectAudioTrack(track, resumeAt: resumeAt, completion: completion)
-    }
-
-    func probeQualities(videoId: String, completion: @escaping ([VideoQuality]) -> Void) {
-        guard let network else {
-            completion([])
-            return
-        }
-        network.probeQualities(videoId: videoId, completion: completion)
-    }
-
-    func probeAudioTracks(videoId: String, completion: @escaping ([AudioTrack]) -> Void) {
-        guard let network else {
-            completion([])
-            return
-        }
-        network.probeAudioTracks(videoId: videoId, completion: completion)
-    }
-
     func releaseResources() {
         stopEncoding()
         network?.releaseResources()
     }
 
+    /// The prepared copy took over from the live transcode.
+    func switchedToCopy(_ copy: YT6AndCastPlayback.Stream) {
+        stopEncoding()
+        stream = copy
+        playingFromServer = true
+    }
+
     /// `stopEncoding:` — ends a Jellyfin transcode nobody watches.
-    private func stopEncoding() {
+    func stopEncoding() {
         guard let session = encodingSession else {
             return
         }
